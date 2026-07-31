@@ -28,7 +28,7 @@ u64 g_ticks = 0;
 // exceeds a 38400-baud UART, which needs ~260 us a byte against a 10 ms
 // budget.
 @interrupt void timer_isr() {
-    atomic_add(&g_ticks, cast(u64, 1));
+    atomic_add(&g_ticks, 1);
     lapic_eoi();
 }
 
@@ -53,7 +53,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     lapic_enable();
 
     u32 count = lapic_timer_calibrate();
-    con_field_dec("calibrated: ", cast(i64, count));
+    con_field_dec("calibrated: ", count);
     con_cputs(CON_GRAY, " timer counts per 10 ms\n");
 
     lapic_timer_periodic(cast(u8, TIMER_VEC), count);

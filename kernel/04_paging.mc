@@ -4,8 +4,8 @@
 //   ./run.ps1 kernel/04_paging.mc -Headless -Expect "on our own tables"
 //
 // ExitBootServices leaves the firmware's identity map in place, and examples 01
-// to 03 use it. That map can't be extended, and it recides in memory the kernel
-// wants to reclaim. We take the memory map, put every free frame on a list, 
+// to 03 use it. That map can't be extended, and it resides in memory the kernel
+// wants to reclaim. We take the memory map, put every free frame on a list,
 // build fresh 4-level tables out of those frames, and load CR3.
 //
 // Long mode and PAE are already on, so the switch is a single write. The

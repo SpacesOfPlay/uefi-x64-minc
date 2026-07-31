@@ -5,7 +5,7 @@
 //
 // Example 02 catches a fault, dumps the registers and halts. It can't do anything
 // else, because it does not own the page tables. Since example 04 added page tables
-// we can now handle this by allocating a frame, map it at the faulting address, 
+// we can now handle this by allocating a frame, map it at the faulting address,
 // and return. The CPU retries the instruction and the read succeeds.
 //
 // This is how demand paging, growable heaps and lazy stacks all work.

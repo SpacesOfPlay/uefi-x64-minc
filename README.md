@@ -81,6 +81,7 @@ ready.
 | `03_lapic_timer.mc` | The local APIC timer calibrated against the PIT, firing an `@interrupt` handler at 100 Hz while the CPU sleeps in `__hlt`. |
 | `04_paging.mc` | Stop using the firmware's identity map. A frame allocator over the memory map, fresh 4-level page tables built from it, and a CR3 switch. |
 | `05_demand_paging.mc` | A page fault the kernel repairs: allocate a frame, map it at the faulting address, return, and the read resumes. Also one frame mapped at two addresses. |
+| `06_threads.mc` | Preemptive round-robin. A task's whole context is its stack pointer, and the timer handler switches between three of them. |
 
 ## Interrupt handlers
 
