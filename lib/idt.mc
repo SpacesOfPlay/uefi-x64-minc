@@ -10,16 +10,16 @@ u8[10] idt_ptr;       // IDTR: limit (2 bytes) + base (8 bytes)
 // Handlers run under this selector (gdt.mc GDT_KCODE).
 i32 IDT_CODE_SELECTOR = 0x08;
 
-// Install a 64-bit interrupt gate for `vec` pointing at `handler`. Present,
-// ring 0.
-void idt_set_gate(i32 vec, u64 handler) {
+// Install a 64-bit interrupt gate for `vec` pointing at `handler`. `attr` is
+// the type and privilege byte.
+void idt_set_gate_attr(i32 vec, u64 handler, u8 attr) {
     i64 b = cast(i64, vec) * 16;
     *(idt_table + b + 0) = cast(u8, handler & 0xFF);
     *(idt_table + b + 1) = cast(u8, (handler >> 8) & 0xFF);
     *(idt_table + b + 2) = cast(u8, IDT_CODE_SELECTOR & 0xFF);
     *(idt_table + b + 3) = cast(u8, (IDT_CODE_SELECTOR >> 8) & 0xFF);
     *(idt_table + b + 4) = 0;       // IST = 0: stay on the current stack
-    *(idt_table + b + 5) = 0x8E;    // present, DPL 0, 64-bit interrupt gate
+    *(idt_table + b + 5) = attr;
     *(idt_table + b + 6) = cast(u8, (handler >> 16) & 0xFF);
     *(idt_table + b + 7) = cast(u8, (handler >> 24) & 0xFF);
     *(idt_table + b + 8) = cast(u8, (handler >> 32) & 0xFF);
@@ -28,6 +28,17 @@ void idt_set_gate(i32 vec, u64 handler) {
     *(idt_table + b + 11) = cast(u8, (handler >> 56) & 0xFF);
     *(idt_table + b + 12) = 0; *(idt_table + b + 13) = 0;
     *(idt_table + b + 14) = 0; *(idt_table + b + 15) = 0;
+}
+
+// A gate only ring 0 can reach. Every CPU exception uses one.
+void idt_set_gate(i32 vec, u64 handler) {
+    idt_set_gate_attr(vec, handler, 0x8E);   // present, DPL 0, interrupt gate
+}
+
+// A gate ring 3 may invoke with `int`. A syscall vector needs this, and only
+// this: a DPL-0 gate raises #GP instead of entering the handler.
+void idt_set_gate_user(i32 vec, u64 handler) {
+    idt_set_gate_attr(vec, handler, 0xEE);   // present, DPL 3, interrupt gate
 }
 
 // Build the IDTR and load it with lidt.

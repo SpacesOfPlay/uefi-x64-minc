@@ -64,6 +64,24 @@ void paging_map_4kb(u64 pml4, u64 virt, u64 phys) {
     *(t1 + i1) = phys | PTE_RW | PTE_P;
 }
 
+// Set US on the 2 MiB page covering `virt` and on every table above it. A
+// ring-3 access needs US at all three levels, so all three are marked.
+//
+// This exposes the whole 2 MiB, which here also holds kernel code. It shows how
+// the bit works rather than acting as an isolation boundary. The caller must
+// reload CR3 afterwards, because these entries are already in the TLB.
+void paging_mark_user_2mb(u64 virt) {
+    i32 i4 = cast(i32, (virt >> 39) & 0x1FF);
+    i32 i3 = cast(i32, (virt >> 30) & 0x1FF);
+    i32 i2 = cast(i32, (virt >> 21) & 0x1FF);
+    u64* t4 = cast(u64*, paging_pml4);
+    *(t4 + i4) = *(t4 + i4) | PTE_US;
+    u64* t3 = cast(u64*, (*(t4 + i4) >> 12) << 12);
+    *(t3 + i3) = *(t3 + i3) | PTE_US;
+    u64* t2 = cast(u64*, (*(t3 + i3) >> 12) << 12);
+    *(t2 + i2) = *(t2 + i2) | PTE_US;
+}
+
 // Identity-map [base, end) with 2 MiB pages. base rounds down to a 2 MiB
 // boundary, and the last page started below end covers the tail.
 void paging_map_range_2mb(u64 base, u64 end) {

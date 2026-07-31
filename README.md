@@ -82,6 +82,7 @@ ready.
 | `04_paging.mc` | Stop using the firmware's identity map. A frame allocator over the memory map, fresh 4-level page tables built from it, and a CR3 switch. |
 | `05_demand_paging.mc` | A page fault the kernel repairs: allocate a frame, map it at the faulting address, return, and the read resumes. Also one frame mapped at two addresses. |
 | `06_threads.mc` | Preemptive round-robin. A task's whole context is its stack pointer, and the timer handler switches between three of them. |
+| `07_ring3.mc` | User segments, a TSS, and `__enter_user`. Ring 3 asks the kernel to print through an `int 0x80` gate, then tries a privileged instruction and gets `#GP`. |
 
 ## Interrupt handlers
 
