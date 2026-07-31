@@ -83,6 +83,7 @@ ready.
 | `05_demand_paging.mc` | A page fault the kernel repairs: allocate a frame, map it at the faulting address, return, and the read resumes. Also one frame mapped at two addresses. |
 | `06_threads.mc` | Preemptive round-robin. A task's whole context is its stack pointer, and the timer handler switches between three of them. |
 | `07_ring3.mc` | User segments, a TSS, and `__enter_user`. Ring 3 asks the kernel to print through an `int 0x80` gate, then tries a privileged instruction and gets `#GP`. |
+| `08_syscall.mc` | A syscall ABI: a number in `rax`, an argument in `rdi`, the result written back into the saved frame. One call sets IF there, and the timer starts preempting ring 3. |
 
 ## Interrupt handlers
 
