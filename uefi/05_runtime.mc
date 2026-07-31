@@ -1,18 +1,18 @@
-// 05_runtime.mc — the runtime contract: portable minc on the firmware.
+// 05_runtime.mc - the runtime contract: portable minc on the firmware.
 //
 //   ./run.ps1 uefi/05_runtime.mc
 //
 // On --target uefi-x64 the ordinary builtins (write, alloc, free, exit, ...)
-// compile to calls on __minc_* symbols the program itself provides. Back
-// those with boot services and plain minc runs unchanged as a UEFI app.
-// Only the symbols a program actually uses need to exist; the full contract
-// also covers open / read / close / remove / realloc / memcpy / memset /
-// get_argc / get_arg / qpc / qpf.
+// compile to calls on __minc_* symbols the program itself provides. Back those
+// with boot services and portable minc runs unchanged as a UEFI app. Only the
+// symbols a program uses need to exist. The full contract also covers open,
+// read, close, remove, realloc, memcpy, memset, get_argc, get_arg, qpc and
+// qpf.
 
 import efi;
 
 // ---------------------------------------------------------------------
-// The program. Nothing below this line touches UEFI — it compiles as-is
+// The program. Nothing below this line touches UEFI. It compiles unchanged
 // with --target windows or linux.
 // ---------------------------------------------------------------------
 
@@ -25,10 +25,10 @@ void put_str(u8* s) {
 void put_dec(i64 v) {
     noinit u8[24] buf;
     i32 i = 23;
-    if v == 0 { i = 22; buf[22] = 48; }
+    if v == 0 { i = 22; buf[22] = '0'; }
     while v > 0 {
         i--;
-        buf[i] = cast(u8, 48 + cast(i32, v % 10));
+        buf[i] = cast(u8, '0' + cast(i32, v % 10));
         v = v / 10;
     }
     write(stdout(), &buf[i], 23 - i);
@@ -57,8 +57,8 @@ i32 main() {
 
 EfiSystemTable* rt_st = null;
 
-// write() on stdout/stderr: bounded bytes to the console, widened to UTF-16
-// with \n expanded to \r\n.
+// write() on stdout and stderr. Bounded bytes to the console, widened to
+// UTF-16 with \n expanded to \r\n.
 i32 __minc_write(i64 handle, void* buf, i32 count) {
     u8* s = cast(u8*, buf);
     u16[128] w;
@@ -69,8 +69,8 @@ i32 __minc_write(i64 handle, void* buf, i32 count) {
             rt_st.con_out.output_string(rt_st.con_out, w);
             n = 0;
         }
-        if *(s + i) == 10 {
-            w[n] = 13;
+        if *(s + i) == '\n' {
+            w[n] = '\r';
             n++;
         }
         w[n] = cast(u16, *(s + i));
@@ -93,7 +93,7 @@ void* __minc_memset(void* dst, i32 c, i64 n) {
     return dst;
 }
 
-// exit() has nowhere to return to; report and wait forever.
+// exit() has nowhere to return to, so report the code and wait.
 void __minc_exit(i32 code) {
     efi_puts(rt_st, "\n[exit called]\n");
     while true { efi_stall(rt_st, 1000000); }

@@ -1,7 +1,8 @@
-// idt.mc — the Interrupt Descriptor Table: 256 gates, one per vector.
+// idt.mc - the Interrupt Descriptor Table: 256 gates, one per vector.
 //
-// A handler is a minc @interrupt or @interrupt_err function; its address goes
-// straight into a gate. Load the GDT first, the gates name its code selector.
+// A handler is a minc @interrupt or @interrupt_err function, and its address
+// goes into a gate. Load the GDT first, since the gates name its code
+// selector.
 
 u8[4096] idt_table;   // 256 gates * 16 bytes
 u8[10] idt_ptr;       // IDTR: limit (2 bytes) + base (8 bytes)
@@ -9,8 +10,8 @@ u8[10] idt_ptr;       // IDTR: limit (2 bytes) + base (8 bytes)
 // Handlers run under this selector (gdt.mc GDT_KCODE).
 i32 IDT_CODE_SELECTOR = 0x08;
 
-// Install a 64-bit interrupt gate for `vec` pointing at `handler`
-// (present, ring 0, interrupt gate).
+// Install a 64-bit interrupt gate for `vec` pointing at `handler`. Present,
+// ring 0.
 void idt_set_gate(i32 vec, u64 handler) {
     i64 b = cast(i64, vec) * 16;
     *(idt_table + b + 0) = cast(u8, handler & 0xFF);
@@ -39,8 +40,8 @@ void idt_load() {
 }
 
 // Remap the two 8259 PICs away from the CPU exception vectors, then mask every
-// line. The firmware leaves the PICs where a stray IRQ would look like an
-// exception; parked at 0x20-0x2F and masked they stay quiet while the LAPIC
+// line. The firmware leaves them where a stray IRQ would arrive as an
+// exception. Remapped to 0x20-0x2F and masked, they stay quiet while the LAPIC
 // drives interrupts.
 void pic_remap_masked() {
     __outb(0x20, 0x11); __outb(0xA0, 0x11);   // ICW1: begin init, expect ICW4

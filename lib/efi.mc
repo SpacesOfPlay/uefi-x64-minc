@@ -1,4 +1,4 @@
-// efi.mc — minimal UEFI surface for the `--target uefi-x64` backend.
+// efi.mc - minimal UEFI surface for the `--target uefi-x64` backend.
 //
 // A UEFI application is a freestanding PE32+ image whose entry is
 //   u64 efi_main(void* image_handle, EfiSystemTable* st)
@@ -7,10 +7,10 @@
 // entry needs no wrapper. Services are reached through the table's nested
 // protocol vtables (structs of function pointers), not through imports.
 //
-// Layout matches the UEFI spec field-for-field; minc lays structs out with
-// C-natural alignment, so the offsets line up with the firmware's tables.
+// Layout matches the UEFI spec field-for-field. minc lays structs out with
+// C-natural alignment, so the offsets match the firmware's tables.
 
-// EFI_STATUS success code. Errors set the high bit; callers test against
+// EFI_STATUS success code. Errors set the high bit, so callers test against
 // EFI_SUCCESS rather than enumerating every error value.
 u64 EFI_SUCCESS = 0;
 
@@ -18,7 +18,7 @@ u64 EFI_SUCCESS = 0;
 u32 EFI_LOADER_DATA = 2;
 u32 EFI_LOADER_CODE = 1;
 
-// EFI_TABLE_HEADER — 24 bytes, leads every standard table.
+// EFI_TABLE_HEADER, 24 bytes. Leads every standard table.
 struct EfiTableHeader {
     u64 signature;
     u32 revision;
@@ -27,7 +27,7 @@ struct EfiTableHeader {
     u32 reserved;
 }
 
-// EFI_GUID — 16 bytes. Used to look up protocols via LocateProtocol.
+// EFI_GUID, 16 bytes. Used to look up protocols via LocateProtocol.
 struct EfiGuid {
     u32 data1;
     u16 data2;
@@ -49,8 +49,8 @@ struct EfiSimpleTextInputProtocol {
 }
 
 // EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL (ConOut / StdErr). Every entry takes the
-// protocol pointer as its first ("This") argument. Only output_string is
-// needed for console text; the rest keep the vtable offsets correct.
+// protocol pointer as its first ("This") argument. Only output_string is used
+// here. The rest keep the vtable offsets correct.
 struct EfiSimpleTextOutputProtocol {
     fn(void*, u64): u64 reset;
     fn(void*, u16*): u64 output_string;
@@ -64,9 +64,9 @@ struct EfiSimpleTextOutputProtocol {
     void* mode;
 }
 
-// EFI_BOOT_SERVICES. Every member is a pointer-sized slot; the spec order is
-// load-bearing because services are reached by offset. Members this library
-// does not call are typed void* — present only to hold their offsets.
+// EFI_BOOT_SERVICES. Every member is a pointer-sized slot, and the spec order
+// matters because services are reached by offset. Members this library does
+// not call are typed void*, present only to hold their offsets.
 struct EfiBootServices {
     EfiTableHeader hdr;
     // Task priority
@@ -143,8 +143,8 @@ struct EfiSystemTable {
     void* configuration_table;
 }
 
-// EFI_MEMORY_DESCRIPTOR. GetMemoryMap reports descriptor_size separately and
-// it may exceed this struct. Always stride the array by descriptor_size, not
+// EFI_MEMORY_DESCRIPTOR. GetMemoryMap reports descriptor_size separately, and
+// it may exceed this struct. Stride the array by descriptor_size, never by
 // sizeof(EfiMemoryDescriptor).
 struct EfiMemoryDescriptor {
     u32 type;
@@ -155,8 +155,8 @@ struct EfiMemoryDescriptor {
     u64 attribute;
 }
 
-// Result of efi_get_memory_map: the buffer plus the key/stride needed to walk
-// it and to call ExitBootServices.
+// Result of efi_get_memory_map: the buffer, plus the key and stride needed to
+// walk it and to call ExitBootServices.
 struct EfiMemoryMap {
     void* buffer;
     u64 size;                 // bytes filled
@@ -202,9 +202,9 @@ struct EfiGraphicsOutputProtocol {
 // Console output
 // =====================================================================
 
-// Write an ASCII string to the console. UEFI consumes UTF-16, so the bytes
-// are widened on a stack buffer and '\n' is expanded to "\r\n". Strings
-// longer than the buffer are split across calls.
+// Write an ASCII string to the console. UEFI takes UTF-16, so the bytes are
+// widened on a stack buffer and '\n' is expanded to "\r\n". Strings longer
+// than the buffer are split across calls.
 void efi_puts(EfiSystemTable* st, u8* s) {
     u16[256] buf;
     i32 n = 0;
@@ -216,8 +216,8 @@ void efi_puts(EfiSystemTable* st, u8* s) {
             n = 0;
         }
         u8 c = *(s + i);
-        if c == 10 {
-            buf[n] = 13;          // carriage return before newline
+        if c == '\n' {
+            buf[n] = '\r';        // carriage return before newline
             n = n + 1;
         }
         buf[n] = cast(u16, c);
@@ -228,7 +228,7 @@ void efi_puts(EfiSystemTable* st, u8* s) {
     st.con_out.output_string(st.con_out, buf);
 }
 
-// Print an unsigned 64-bit value as hexadecimal (no "0x" prefix).
+// Print an unsigned 64-bit value as hexadecimal, with no "0x" prefix.
 void efi_put_hex(EfiSystemTable* st, u64 v) {
     u8[17] tmp;
     i32 i = 16;
@@ -241,7 +241,7 @@ void efi_put_hex(EfiSystemTable* st, u64 v) {
         i = i - 1;
         u8 d = cast(u8, v & 0xF);
         if d < 10 { tmp[i] = cast(u8, '0' + d); }       // '0'..'9'
-        else { tmp[i] = cast(u8, 'a' + d); }            // 'a'..'f'
+        else { tmp[i] = cast(u8, 'a' + d - 10); }       // 'a'..'f'
         v = v >> 4;
     }
     efi_puts(st, &tmp[i]);
@@ -251,9 +251,9 @@ void efi_put_hex(EfiSystemTable* st, u64 v) {
 // Console input
 // =====================================================================
 
-// Block until a key is pressed, returning its Unicode character. Polls
-// ReadKeyStroke (returns non-success while the buffer is empty) so it needs
-// no event wiring.
+// Block until a key is pressed, then return its Unicode character. Polls
+// ReadKeyStroke, which returns non-success while the buffer is empty, so no
+// event wiring is needed.
 u16 efi_wait_key(EfiSystemTable* st) {
     EfiInputKey key;
     while st.con_in.read_key_stroke(st.con_in, &key) != EFI_SUCCESS { }
@@ -276,8 +276,8 @@ void efi_free(EfiSystemTable* st, void* p) {
     st.boot_services.free_pool(p);
 }
 
-// Firmware-provided block copy / fill — the freestanding stand-ins for the
-// memcpy / memset builtins, which are unavailable on the uefi target.
+// Firmware block copy and fill. The memcpy and memset builtins are not
+// available on the uefi target, so use these instead.
 void efi_copy_mem(EfiSystemTable* st, void* dst, void* src, u64 len) {
     st.boot_services.copy_mem(dst, src, len);
 }
@@ -295,8 +295,8 @@ void efi_stall(EfiSystemTable* st, u64 microseconds) {
     st.boot_services.stall(microseconds);
 }
 
-// Disable the firmware watchdog so a long-running app isn't reset after the
-// default 5-minute timeout. Pass timeout 0 to disarm.
+// Disable the firmware watchdog, which otherwise resets the machine after the
+// default 5-minute timeout. Timeout 0 disarms it.
 void efi_disable_watchdog(EfiSystemTable* st) {
     st.boot_services.set_watchdog_timer(0, 0, 0, null);
 }
@@ -331,8 +331,8 @@ EfiGraphicsOutputProtocol* efi_locate_gop(EfiSystemTable* st) {
     return cast(EfiGraphicsOutputProtocol*, gop);
 }
 
-// Fill the entire framebuffer with a 32-bit packed pixel (typically 0x00RRGGBB
-// under the common BGRX format). Writes straight to the linear framebuffer.
+// Fill the entire framebuffer with a 32-bit packed pixel, usually 0x00RRGGBB
+// under the common BGRX format. Writes to the linear framebuffer directly.
 void efi_gop_fill(EfiGraphicsOutputProtocol* gop, u32 color) {
     u32* fb = cast(u32*, gop.mode.frame_buffer_base);
     u64 n = gop.mode.frame_buffer_size / 4;
@@ -345,11 +345,10 @@ void efi_gop_fill(EfiGraphicsOutputProtocol* gop, u32 color) {
 // Boot-services handoff (memory map + ExitBootServices)
 // =====================================================================
 
-// Snapshot the firmware memory map into a freshly allocated pool buffer.
-// Returns 1 on success (out filled), 0 on failure. The buffer is owned by the
-// caller; free it with efi_free, or leak it deliberately once boot services
-// are gone. Oversizes the buffer so the pool allocation's own map churn can't
-// overflow it.
+// Copy the firmware memory map into a freshly allocated pool buffer. Returns
+// 1 on success with `out` filled, 0 on failure. The caller owns the buffer and
+// frees it with efi_free, or leaves it allocated once boot services are gone.
+// The buffer is oversized, because the pool allocation itself changes the map.
 i32 efi_get_memory_map(EfiSystemTable* st, EfiMemoryMap* out) {
     u64 size = 0;
     u64 key = 0;
@@ -374,15 +373,14 @@ i32 efi_get_memory_map(EfiSystemTable* st, EfiMemoryMap* out) {
     return 1;
 }
 
-// Leave boot services. On success the firmware's boot services are gone:
-// AllocatePool, console output, file I/O, and timers no longer work — only
-// runtime services and anything captured beforehand (e.g. the GOP
-// framebuffer) survive. `out_map` is filled with the map that was live at
-// exit, for the kernel to consume. Returns 1 on success, 0 on failure.
+// Leave boot services. On success AllocatePool, console output, file I/O and
+// timers stop working. Only runtime services and values captured beforehand,
+// such as the GOP framebuffer address, remain usable. `out_map` receives the
+// map that was live at exit. Returns 1 on success, 0 on failure.
 //
 // The map key can go stale between GetMemoryMap and ExitBootServices, so this
-// retries with a fresh map (the spec-mandated dance). No allocation happens
-// between sampling the key and the exit call, keeping the key valid.
+// retries with a fresh map, as the spec requires. Nothing is allocated between
+// sampling the key and the exit call, which keeps the key valid.
 i32 efi_exit_boot_services(EfiSystemTable* st, void* image_handle, EfiMemoryMap* out_map) {
     for i32 attempt = 0; attempt < 8; attempt = attempt + 1 {
         EfiMemoryMap mm;
@@ -396,7 +394,7 @@ i32 efi_exit_boot_services(EfiSystemTable* st, void* image_handle, EfiMemoryMap*
             out_map.descriptor_version = mm.descriptor_version;
             return 1;
         }
-        efi_free(st, mm.buffer);       // stale key — free and resample
+        efi_free(st, mm.buffer);       // stale key, free and resample
     }
     return 0;
 }
@@ -407,7 +405,7 @@ i32 efi_exit_boot_services(EfiSystemTable* st, void* image_handle, EfiMemoryMap*
 
 u64 EFI_FILE_MODE_READ = 1;
 
-// EFI_LOADED_IMAGE_PROTOCOL - gives the device handle the image booted from.
+// EFI_LOADED_IMAGE_PROTOCOL. Holds the device handle the image booted from.
 struct EfiLoadedImageProtocol {
     u32 revision;
     void* parent_handle;
@@ -480,11 +478,11 @@ EfiLoadedImageProtocol* efi_loaded_image(EfiSystemTable* st, void* image_handle)
     return cast(EfiLoadedImageProtocol*, p);
 }
 
-// Open the root directory of a FAT volume. Uses LocateProtocol to grab the
-// first Simple File System the firmware exposes — correct for the common
-// single-volume boot (one ESP). The boot image's own DeviceHandle does not
-// always carry SimpleFileSystem directly (some firmware puts it on a child
-// handle), so this is more robust than going through LoadedImage. Returns
+// Open the root directory of a FAT volume. Uses LocateProtocol to take the
+// first Simple File System the firmware exposes, which is correct for a
+// single-volume boot with one ESP. The boot image's own DeviceHandle does not
+// always carry SimpleFileSystem, since some firmware puts it on a child
+// handle, so this is more reliable than going through LoadedImage. Returns
 // null if no filesystem is present.
 EfiFileProtocol* efi_open_esp_root(EfiSystemTable* st, void* image_handle) {
     EfiGuid g;
@@ -497,7 +495,7 @@ EfiFileProtocol* efi_open_esp_root(EfiSystemTable* st, void* image_handle) {
     return cast(EfiFileProtocol*, root);
 }
 
-// Open a file under `dir` by ASCII path (e.g. "\\KERNEL.EFI") for reading.
+// Open a file under `dir` for reading, by ASCII path such as "\\KERNEL.EFI".
 EfiFileProtocol* efi_open_file(EfiFileProtocol* dir, u8* ascii_path) {
     u16[260] wpath;
     efi_ascii_to_utf16(&wpath[0], ascii_path);
@@ -506,7 +504,7 @@ EfiFileProtocol* efi_open_file(EfiFileProtocol* dir, u8* ascii_path) {
     return cast(EfiFileProtocol*, f);
 }
 
-// File size in bytes via GetInfo(EFI_FILE_INFO); FileSize sits at offset 8.
+// File size in bytes via GetInfo(EFI_FILE_INFO). FileSize sits at offset 8.
 u64 efi_file_size(EfiFileProtocol* f) {
     u8[512] info;
     u64 sz = 512;
@@ -518,7 +516,7 @@ u64 efi_file_size(EfiFileProtocol* f) {
 }
 
 // Read an entire file into a freshly allocated pool buffer. Returns null on
-// failure; *out_size gets the byte count.
+// failure. *out_size receives the byte count.
 void* efi_read_file(EfiSystemTable* st, EfiFileProtocol* f, u64* out_size) {
     u64 size = efi_file_size(f);
     if size == 0 { return null; }

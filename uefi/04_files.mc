@@ -1,10 +1,10 @@
-// 04_files.mc — read a file from the EFI System Partition.
+// 04_files.mc - read a file from the EFI System Partition.
 //
 //   ./run.ps1 uefi/04_files.mc
 //
 // The firmware exposes the boot volume through the Simple File System
-// protocol. This program opens the file the firmware just booted,
-// \EFI\BOOT\BOOTX64.EFI is this program, and checks its own PE signature.
+// protocol. This program opens \EFI\BOOT\BOOTX64.EFI, which is the file the
+// firmware just booted, and checks its own PE signature.
 
 import efi;
 
@@ -12,10 +12,10 @@ void put_dec(EfiSystemTable* st, u64 v) {
     noinit u8[24] buf;
     i32 i = 23;
     buf[23] = 0;
-    if v == 0 { i = 22; buf[22] = 48; }
+    if v == 0 { i = 22; buf[22] = '0'; }
     while v != 0 {
         i--;
-        buf[i] = cast(u8, 48 + cast(i32, v % 10));
+        buf[i] = cast(u8, '0' + cast(i32, v % 10));
         v = v / 10;
     }
     efi_puts(st, &buf[i]);
@@ -50,7 +50,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     put_dec(st, size);
     efi_puts(st, " bytes\n");
 
-    // 'M' 'Z': the DOS header minc's PE writer emits, like any other PE.
+    // 'M' 'Z' is the DOS header minc's PE writer emits, as any PE does.
     if size >= 2 && *(data + 0) == 'M' && *(data + 1) == 'Z' {
         efi_puts(st, "signature: MZ - this file is the program reading it\n");
     } else {

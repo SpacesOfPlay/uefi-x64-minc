@@ -1,18 +1,18 @@
-// 02_gop.mc — pixels: draw into the Graphics Output Protocol framebuffer.
+// 02_gop.mc - draw pixels into the Graphics Output Protocol framebuffer.
 //
 //   ./run.ps1 uefi/02_gop.mc
 //
-// The GOP hands over a linear framebuffer: base address, resolution, and the
-// row pitch. After that, graphics is just stores. Pixels are 32-bit
-// 0x00RRGGBB under the common BGRX layout.
+// The GOP reports a linear framebuffer: base address, resolution and row
+// pitch. Drawing after that is stores. Pixels are 32-bit 0x00RRGGBB under the
+// common BGRX layout.
 
 import efi;
 import efi_font;
 
-// Append v as decimal digits at dst+pos; return the new position.
+// Append v as decimal digits at dst+pos. Returns the new position.
 i32 fmt_dec(u8* dst, i32 pos, i64 v) {
     if v >= 10 { pos = fmt_dec(dst, pos, v / 10); }
-    *(dst + pos) = cast(u8, 48 + cast(i32, v % 10));
+    *(dst + pos) = cast(u8, '0' + cast(i32, v % 10));
     return pos + 1;
 }
 
@@ -39,7 +39,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     i32 pitch = efi_fb_pitch(gop);
     u32* fb = cast(u32*, gop.mode.frame_buffer_base);
 
-    // XOR texture: the whole background from one integer expression per pixel.
+    // XOR texture. One integer expression per pixel fills the background.
     for i32 y = 0; y < h; y++ {
         for i32 x = 0; x < w; x++ {
             u32 v = cast(u32, (x ^ y) & 0xFF);
@@ -47,7 +47,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
         }
     }
 
-    // A panel behind the text so it reads on the busy background.
+    // A panel behind the text, so it stays readable over the texture.
     i32 pw = 480;
     i32 ph = 150;
     i32 px = (w - pw) / 2;
@@ -59,7 +59,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
 
     noinit u8[48] line;
     i32 n = fmt_dec(&line[0], 0, w);
-    line[n] = 32; n++; line[n] = 120; n++; line[n] = 32; n++;   // " x "
+    line[n] = ' '; n++; line[n] = 'x'; n++; line[n] = ' '; n++;
     n = fmt_dec(&line[0], n, h);
     line[n] = 0;
     efi_draw_text(gop, (w - efi_text_width(&line[0], 2)) / 2, py + 70, &line[0], 0x0080A0C0, 2);

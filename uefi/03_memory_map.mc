@@ -1,11 +1,11 @@
-// 03_memory_map.mc — what the firmware knows about RAM.
+// 03_memory_map.mc - what the firmware knows about RAM.
 //
 //   ./run.ps1 uefi/03_memory_map.mc
 //
-// GetMemoryMap returns an array of typed regions. A kernel needs this map to
-// know which pages it may claim after ExitBootServices; here we just total
-// the regions per type. The array is strided by descriptor_size, which may
-// exceed sizeof(EfiMemoryDescriptor), never index it as a plain array.
+// GetMemoryMap returns an array of typed regions. A kernel reads this map to
+// find the pages it may claim after ExitBootServices. This example totals the
+// regions per type. Stride the array by descriptor_size, which may exceed
+// sizeof(EfiMemoryDescriptor). Never index it as a plain array.
 
 import efi;
 
@@ -13,10 +13,10 @@ void put_dec(EfiSystemTable* st, u64 v) {
     noinit u8[24] buf;
     i32 i = 23;
     buf[23] = 0;
-    if v == 0 { i = 22; buf[22] = 48; }
+    if v == 0 { i = 22; buf[22] = '0'; }
     while v != 0 {
         i--;
-        buf[i] = cast(u8, 48 + cast(i32, v % 10));
+        buf[i] = cast(u8, '0' + cast(i32, v % 10));
         v = v / 10;
     }
     efi_puts(st, &buf[i]);
@@ -59,8 +59,8 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     i64 count = cast(i64, mm.size / mm.descriptor_size);
     u8* p = cast(u8*, mm.buffer);
 
-    // Total pages per type, plus the largest free region — where a kernel
-    // would put its physical allocator.
+    // Total pages per type, plus the largest free region. A kernel would put
+    // its physical allocator there.
     u64[16] pages;
     u64 largest = 0;
     u64 largest_at = 0;

@@ -1,9 +1,8 @@
-// lapic.mc — the local APIC: the per-CPU interrupt controller and its timer.
+// lapic.mc - the local APIC: the per-CPU interrupt controller and its timer.
 //
 // Registers are memory-mapped at the base the APIC-base MSR (0x1B) reports,
-// one register per 16-byte slot. MMIO must not be cached or hoisted by the
-// optimizer, every access goes through the atomic builtins which forces
-// a real 'mov'.
+// one register per 16-byte slot. The optimizer must not cache or hoist MMIO,
+// so every access goes through the atomic builtins, which force a real mov.
 
 u64 lapic_base = 0;
 
@@ -24,21 +23,20 @@ void lapic_write(u32 reg, u32 v) {
     atomic_store(cast(u32*, lapic_base + cast(u64, reg)), v);
 }
 
-// Software-enable the LAPIC: set bit 8 of the SVR and a spurious vector (0xFF).
+// Enable the LAPIC: set bit 8 of the SVR and a spurious vector of 0xFF.
 void lapic_enable() { lapic_write(LAPIC_SVR, lapic_read(LAPIC_SVR) | 0x100 | 0xFF); }
 
 void lapic_eoi() { lapic_write(LAPIC_EOI, 0); }
 
-// Start the LAPIC timer firing `vector` periodically every `count` ticks
-// (divide by 16).
+// Fire `vector` every `count` timer ticks, with the divider at 16.
 void lapic_timer_periodic(u8 vector, u32 count) {
     lapic_write(LAPIC_TDCR, 0x3);                            // divide by 16
     lapic_write(LAPIC_TIMER, cast(u32, vector) | 0x20000);   // bit 17 = periodic
     lapic_write(LAPIC_TICR, count);
 }
 
-// Measure the LAPIC timer rate against a polled PIT (channel 2, ~10 ms) and
-// return the count for a ~100 Hz periodic tick.
+// Measure the LAPIC timer rate against a polled PIT, channel 2 over ~10 ms.
+// Returns the count for a ~100 Hz periodic tick.
 u32 lapic_timer_calibrate() {
     u8 p = __inb(0x61);
     __outb(0x61, cast(u8, (cast(i32, p) & 0xFC) | 1));       // ch2 gate on, speaker off

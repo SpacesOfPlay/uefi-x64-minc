@@ -1,12 +1,12 @@
-// 01_hello.mc — a complete UEFI application in one file, no imports.
+// 01_hello.mc - a complete UEFI application in one file, no imports.
 //
 //   ./run.ps1 uefi/01_hello.mc
 //
-// The firmware loads the .efi and calls efi_main with the image handle and
-// the system table. Every service is a plain function pointer inside a
-// spec-layout struct. minc structs use C-natural alignment.
+// The firmware loads the .efi and calls efi_main with the image handle and the
+// system table. Every service is a function pointer inside a spec-layout
+// struct. minc structs use C-natural alignment.
 
-// EFI_TABLE_HEADER - 24 bytes at the head of every standard table.
+// EFI_TABLE_HEADER, 24 bytes at the head of every standard table.
 struct EfiTableHeader {
     u64 signature;
     u32 revision;
@@ -35,7 +35,7 @@ struct EfiTextOutput {
 }
 
 // EFI_SYSTEM_TABLE, truncated after con_out. Offsets up to here match the
-// spec exactly; the fields beyond it are not needed.
+// spec exactly. The fields beyond it are not needed.
 struct EfiSystemTable {
     EfiTableHeader hdr;
     u16* firmware_vendor;
@@ -46,7 +46,7 @@ struct EfiSystemTable {
     EfiTextOutput* con_out;
 }
 
-// The console consumes UTF-16 and wants \r\n. Widen ASCII on the stack.
+// The console takes UTF-16 and needs \r\n. Widen ASCII on the stack.
 void puts(EfiSystemTable* st, u8* s) {
     u16[128] buf;
     i32 n = 0;
@@ -56,8 +56,8 @@ void puts(EfiSystemTable* st, u8* s) {
             st.con_out.output_string(st.con_out, buf);
             n = 0;
         }
-        if *(s + i) == 10 {
-            buf[n] = 13;
+        if *(s + i) == '\n' {
+            buf[n] = '\r';
             n++;
         }
         buf[n] = cast(u16, *(s + i));
@@ -70,7 +70,7 @@ void puts(EfiSystemTable* st, u8* s) {
 u64 efi_main(void* image_handle, EfiSystemTable* st) {
     puts(st, "hello from minc on UEFI\n");
 
-    // The vendor string is already UTF-16, hand it to the console as-is.
+    // The vendor string is already UTF-16, so pass it through unchanged.
     puts(st, "firmware: ");
     st.con_out.output_string(st.con_out, st.firmware_vendor);
     puts(st, "\n\npress any key to exit\n");

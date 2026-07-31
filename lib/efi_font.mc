@@ -1,12 +1,12 @@
-// efi_font.mc — draw scalable text into the GOP framebuffer.
+// efi_font.mc - draw scalable text into the GOP framebuffer.
 //
-// The firmware text console uses a fixed small font that can't be enlarged.
-// To draw big text we render glyphs ourselves: an 8x8 bitmap font, blitted
-// with each source pixel expanded to a scale*scale block. Include after
-// efi.mc (uses EfiGraphicsOutputProtocol).
+// The firmware text console has one fixed font size. This renders glyphs
+// directly instead: an 8x8 bitmap font, blitted with each source pixel
+// expanded to a scale*scale block. Include after efi.mc, which defines
+// EfiGraphicsOutputProtocol.
 //
 // Font: the public-domain 8x8 "basic" set, ASCII 0x20-0x7F, 8 bytes per
-// glyph (one byte per row, top to bottom; bit 0 is the leftmost column).
+// glyph. One byte per row, top to bottom. Bit 0 is the leftmost column.
 
 import efi;   // GOP types for the convenience wrappers
 
@@ -109,24 +109,24 @@ u8[768] efi_font8x8 = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // 0x7F
 };
 
-// Row stride in pixels (may exceed the visible width when padded).
+// Row stride in pixels. May exceed the visible width when padded.
 i32 efi_fb_pitch(EfiGraphicsOutputProtocol* gop) {
     return cast(i32, gop.mode.info.pixels_per_scan_line);
 }
 
-// Pixel width of a string at the given scale — for centering / layout.
+// Pixel width of a string at the given scale, for centering and layout.
 i32 efi_text_width(u8* s, i32 scale) {
     i32 n = 0;
     while *(s + n) != 0 { n = n + 1; }
     return n * 8 * scale;
 }
 
-// --- framebuffer-direct core (takes a raw fb pointer + pixel pitch) ---
-// Used both by the GOP wrappers below and by post-ExitBootServices code
-// (a kernel) that holds only the framebuffer base, not a GOP struct.
+// --- framebuffer-direct core (raw fb base + pixel pitch) ---
+// Used by the GOP wrappers below, and by code after ExitBootServices that
+// holds only the framebuffer base and no GOP struct.
 
 // Draw one glyph at (x, y), each font pixel expanded to a scale*scale block.
-// No clipping — the caller keeps text inside the screen.
+// No clipping. The caller keeps text inside the screen.
 void efi_draw_char_fb(u64 fb_base, i32 pitch, i32 x, i32 y, u8 ch, u32 color, i32 scale) {
     if ch < 0x20 || ch > 0x7F { return; }
     i32 gi = (cast(i32, ch) - 0x20) * 8;
@@ -148,7 +148,7 @@ void efi_draw_char_fb(u64 fb_base, i32 pitch, i32 x, i32 y, u8 ch, u32 color, i3
     }
 }
 
-// Draw a string at (x, y) into a raw framebuffer. Advances 8*scale per glyph;
+// Draw a string at (x, y) into a raw framebuffer. Advances 8*scale per glyph.
 // '\n' returns to the start column and drops one line.
 void efi_draw_text_fb(u64 fb_base, i32 pitch, i32 x, i32 y, u8* s, u32 color, i32 scale) {
     i32 cx = x;
@@ -156,7 +156,7 @@ void efi_draw_text_fb(u64 fb_base, i32 pitch, i32 x, i32 y, u8* s, u32 color, i3
     i32 i = 0;
     while *(s + i) != 0 {
         u8 ch = *(s + i);
-        if ch == 10 {
+        if ch == '\n' {
             cx = x;
             cy = cy + 8 * scale;
         } else {

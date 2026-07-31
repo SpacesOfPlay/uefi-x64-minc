@@ -35,16 +35,16 @@ $Build = Join-Path $Root "build"
 function Fail($m) { Write-Host $m -ForegroundColor Red; exit 1 }
 function Step($m) { Write-Host ">> $m" -ForegroundColor Cyan }
 
-# OVMF mirrors its console to the serial port, escape sequences and all
-# (ESC[2J, ESC[=3h, ...). Those are for a terminal emulator inside QEMU; replayed
-# into this shell they clear the screen and leave it in a strange mode.
+# OVMF mirrors its console to the serial port with escape sequences included
+# (ESC[2J, ESC[=3h, ...). Those target a terminal emulator inside QEMU. Replayed
+# into this shell they clear the screen and change its mode.
 function Strip-Ansi([string]$s) {
     $esc = [char]27
     return ($s -replace "$esc\[[0-9;=?]*[A-Za-z]", "")
 }
 
-# Run with no example: show what there is and which one to start with, rather
-# than prompting for the name of a parameter the reader has not met yet.
+# With no example, list what is available and which one to start with, instead
+# of prompting for a parameter name the reader has not seen yet.
 function Show-Usage {
     Write-Host ""
     Write-Host "minc on UEFI x64 - compile an example and boot it under QEMU + OVMF."
@@ -54,7 +54,7 @@ function Show-Usage {
     Write-Host ""
     $blurb = @{
         "uefi"   = "on the firmware: console, graphics, memory map, files"
-        "kernel" = "after ExitBootServices: the bare hardware, on the serial console"
+        "kernel" = "after ExitBootServices: the bare hardware, on a console of their own"
     }
     foreach ($dir in @("uefi", "kernel")) {
         $items = @(Get-ChildItem (Join-Path $Root $dir) -Filter *.mc -ErrorAction SilentlyContinue | Sort-Object Name)
@@ -94,9 +94,9 @@ function Find-Qemu {
     Fail "qemu/OVMF not found. Install: pacman -S mingw-w64-x86_64-qemu, or set MINC_QEMU / MINC_OVMF_CODE / MINC_OVMF_VARS."
 }
 
-# show-tabs draws the console tab bar in the QEMU window, so a uefi example's
-# VGA and serial0 consoles are one click apart instead of Ctrl+Alt+<n>. Only the
-# gtk display has it; without gtk, fall back to QEMU's default display.
+# show-tabs draws the console tab bar in the QEMU window, so the VGA and serial0
+# consoles are one click apart instead of Ctrl+Alt+<n>. Only the gtk display
+# supports it. Without gtk, fall back to QEMU's default display.
 function Get-DisplayArgs {
     $displays = & $Qemu -display help 2>&1 | Out-String
     if ($displays -match "(?m)^\s*gtk\s*$") { return @("-display", "gtk,show-tabs=on") }
@@ -110,8 +110,8 @@ if (!(Test-Path $App)) { $App = Join-Path $Root $App }
 if (!(Test-Path $App)) { Fail "example not found: $App" }
 $App = (Resolve-Path $App).Path
 $appBase = [IO.Path]::GetFileNameWithoutExtension($App)
-# kernel/ examples talk only to COM1 once boot services are gone: their VGA
-# console stays blank, so the window is given no VGA device at all.
+# kernel/ examples capture the framebuffer before ExitBootServices and draw
+# their own console on it, mirrored to COM1. Both need the VGA device present.
 $isKernel = (Split-Path -Leaf (Split-Path -Parent $App)) -eq "kernel"
 
 New-Item -ItemType Directory -Force $Build | Out-Null
@@ -133,8 +133,8 @@ $qi = Find-Qemu; $Qemu = $qi[0]; $OvmfCode = $qi[1]; $OvmfVars = $qi[2]
 $varsRw = Join-Path $Build "uefi_vars.fd"   # OVMF needs a writable NVRAM store
 Copy-Item $OvmfVars $varsRw -Force
 
-# Relative fat:rw: path (resolved from QEMU's working directory = $Root)
-# avoids the drive-letter colon clashing with the option syntax.
+# A relative fat:rw: path, resolved from QEMU's working directory of $Root,
+# keeps the drive-letter colon out of the option syntax.
 $base = @(
     "-machine", "q35", "-cpu", $Cpu, "-m", "${MemMB}M",
     "-drive", "if=pflash,format=raw,readonly=on,file=$OvmfCode",
@@ -154,8 +154,8 @@ if ($Headless) {
         Start-Sleep -Milliseconds 400
     }
     if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
-    # The log keeps the raw bytes; what is matched and printed is escape-free, so
-    # a stray sequence can neither split a match nor reach this terminal.
+    # The log keeps the raw bytes. What is matched and printed is escape-free,
+    # so a stray sequence cannot split a match or reach this terminal.
     $serial = if (Test-Path $log) { Strip-Ansi (Get-Content $log -Raw) } else { "" }
     Write-Host "--- serial console ---"
     Write-Host $serial
@@ -167,18 +167,19 @@ if ($Headless) {
     }
 }
 else {
-    # No -serial: QEMU's default in graphical mode is `vc`, a terminal rendered
-    # inside the QEMU window itself. Nothing is written to this terminal.
+    # No -serial. QEMU's graphical default is `vc`, a terminal rendered inside
+    # the QEMU window. Nothing else writes to it.
     #
-    # Every other `vc` default is turned off, because each one is another tab in
-    # front of the example's own output: -parallel none drops the LPT console,
-    # -monitor none the QEMU monitor (the "compat_monitor0" tab).
+    # Turn off every other `vc` default, since each adds a tab in front of the
+    # example's output. -parallel none drops the LPT console and -monitor none
+    # drops the QEMU monitor, the "compat_monitor0" tab.
     $qargs = $base + (Get-DisplayArgs) + @("-parallel", "none", "-monitor", "none")
     if ($isKernel) {
-        # serial0 is then the window's only console, so it opens on the output
-        # instead of on a VGA tab that stays blank for the whole run.
-        $qargs += @("-vga", "none")
-        Step "qemu (the window is the kernel's serial console; close it to exit)"
+        # The window opens on the VGA tab, where a kernel example draws its
+        # console. The serial0 tab carries the same text. Keystrokes reach the
+        # PS/2 keyboard from the VGA tab and COM1 from the serial tab, and
+        # con_getc reads either one.
+        Step "qemu (the VGA tab is the kernel's console; close the window to exit)"
     }
     else {
         Step "qemu (VGA and serial0 tabs in the window; close it to exit)"
