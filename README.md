@@ -31,7 +31,7 @@ services.
 |---|---|---|
 | `uefi/` | Boot services | Console, graphics, files, allocator - on firmware |
 | `kernel/` | After ExitBootServices | The hardware. Port I/O, descriptor tables, interrupts |
-| `lib/` | Shared | Spec-layout EFI tables, a framebuffer console, and bare-metal helpers the examples import |
+| `lib/` | Shared | Spec-layout EFI tables, a framebuffer console, page tables, and bare-metal helpers the examples import |
 
 ## Quick start
 
@@ -79,6 +79,8 @@ ready.
 | `01_exit_boot_services.mc` | The handoff. The screen and COM1 captured beforehand, the final memory map, control registers, an echo loop. |
 | `02_traps.mc` | Own GDT and IDT. A deliberate fault handled by an `@interrupt_err` minc function: full register dump instead of a triple-fault reboot. |
 | `03_lapic_timer.mc` | The local APIC timer calibrated against the PIT, firing an `@interrupt` handler at 100 Hz while the CPU sleeps in `__hlt`. |
+| `04_paging.mc` | Stop using the firmware's identity map. A frame allocator over the memory map, fresh 4-level page tables built from it, and a CR3 switch. |
+| `05_demand_paging.mc` | A page fault the kernel repairs: allocate a frame, map it at the faulting address, return, and the read resumes. Also one frame mapped at two addresses. |
 
 ## Interrupt handlers
 
