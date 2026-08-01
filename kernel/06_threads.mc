@@ -40,7 +40,7 @@ u8[8192] stack_b;
 // globals, so two tasks printing into it would interleave mid-glyph. Task 0
 // does the printing, and example 09 adds the lock that would fix it.
 void task_a() {
-    __sti();                                  // reached by ret, so IF is still clear
+    __sti();                                  // reached by ret, so the interrupt flag is clear
     while true { atomic_add(&work_a, 1); }
 }
 

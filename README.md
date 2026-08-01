@@ -84,6 +84,7 @@ ready.
 | `06_threads.mc` | Preemptive round-robin. A task's whole context is its stack pointer, and the timer handler switches between three of them. |
 | `07_ring3.mc` | User segments, a TSS, and `__enter_user`. Ring 3 asks the kernel to print through an `int 0x80` gate, then tries a privileged instruction and gets `#GP`. |
 | `08_syscall.mc` | A syscall ABI: a number in `rax`, an argument in `rdi`, the result written back into the saved frame. One call sets IF there, and the timer starts preempting ring 3. |
+| `09_atomics.mc` | A timer handler observes a multi-store update half done. `__cli` and `__sti` is needed to block interrupts, a test-and-test-and-set spinlock shows the multi-core version. |
 
 ## Interrupt handlers
 

@@ -8,10 +8,10 @@
 // writes the result back into rax. The saved frame is the whole ABI. What the
 // handler stores there is what ring 3 resumes with.
 //
-// The last call uses that to set IF in the caller's saved flags. __enter_user
-// starts ring 3 with interrupts off and ring 3 can't run sti, so until the
-// kernel agrees, nothing can take the CPU back. Once it does, the timer
-// preempts ring 3 like any other code.
+// The last call uses that to set the interrupt flag in the caller's saved
+// flags. __enter_user starts ring 3 with interrupts off and ring 3 can't run
+// sti, so until the kernel agrees, nothing can take the CPU back. Once it
+// does, the timer preempts ring 3 like any other code.
 
 import efi;
 import console;
@@ -27,7 +27,7 @@ i32 TIMER_VEC = 0x40;
 u64 SYS_WRITE       = 1;        // print a string
 u64 SYS_WRITE_DEC   = 2;        // print a number
 u64 SYS_ADD         = 3;        // return arg + 2
-u64 SYS_IRQ_ON      = 4;        // set IF in the caller's saved flags
+u64 SYS_IRQ_ON      = 4;        // set the interrupt flag in the saved flags
 u64 SYS_EXIT        = 5;        // leave ring 3
 
 u64 g_ticks = 0;
@@ -56,7 +56,7 @@ u8[16384] user_stack;
         tf.rax = tf.rdi + 2;              // the value ring 3 finds in rax
     }
     else if tf.rax == SYS_IRQ_ON {
-        tf.rflags = tf.rflags | 0x200;    // IF, applied by the iretq below
+        tf.rflags = tf.rflags | 0x200;    // interrupt flag, applied by the iretq
         con_cputs(CON_GRAY, "> kernel: interrupts ON for ring 3, timer is started\n");
     }
     else if tf.rax == SYS_EXIT {
@@ -75,7 +75,7 @@ void user_main() {
     __syscall(SYS_WRITE_DEC, answer);
 
     // Nothing but the timer handler advances g_ticks, and the timer can't fire
-    // until the kernel sets IF. So this loop only ends if ring 3 is preemptible.
+    // until the kernel sets it. So this loop only ends if ring 3 is preemptible.
     __syscall(SYS_IRQ_ON, 0);
 
     // Silly way to time things
