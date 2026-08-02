@@ -12,11 +12,11 @@
 
 // EFI_STATUS success code. Errors set the high bit, so callers test against
 // EFI_SUCCESS rather than enumerating every error value.
-u64 EFI_SUCCESS = 0;
+const u64 EFI_SUCCESS = 0;
 
 // EFI_MEMORY_TYPE values used with AllocatePool.
-u32 EFI_LOADER_DATA = 2;
-u32 EFI_LOADER_CODE = 1;
+const u32 EFI_LOADER_DATA = 2;
+const u32 EFI_LOADER_CODE = 1;
 
 // EFI_TABLE_HEADER, 24 bytes. Leads every standard table.
 struct EfiTableHeader {
@@ -166,7 +166,7 @@ struct EfiMemoryMap {
 }
 
 // Common EFI_MEMORY_TYPE values a kernel cares about after exit.
-u32 EFI_CONVENTIONAL_MEMORY = 7;
+const u32 EFI_CONVENTIONAL_MEMORY = 7;
 
 // --- EFI_GRAPHICS_OUTPUT_PROTOCOL (GOP) ---
 
@@ -403,7 +403,7 @@ i32 efi_exit_boot_services(EfiSystemTable* st, void* image_handle, EfiMemoryMap*
 // File I/O (Simple File System / File protocol)
 // =====================================================================
 
-u64 EFI_FILE_MODE_READ = 1;
+const u64 EFI_FILE_MODE_READ = 1;
 
 // EFI_LOADED_IMAGE_PROTOCOL. Holds the device handle the image booted from.
 struct EfiLoadedImageProtocol {

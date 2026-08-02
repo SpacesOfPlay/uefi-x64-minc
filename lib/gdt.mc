@@ -16,11 +16,11 @@ u8[10] gdt_ptr;    // GDTR: limit (2 bytes) + base (8 bytes)
 u8[104] tss;       // 64-bit Task State Segment
 u8[16384] gdt_kstack;   // the stack a ring 3 -> ring 0 trap lands on
 
-i32 GDT_KCODE = 0x08;
-i32 GDT_KDATA = 0x10;
-i32 GDT_UCODE = 0x18;   // ring 3 adds its RPL, giving 0x1B
-i32 GDT_UDATA = 0x20;   // 0x23
-i32 GDT_TSS = 0x28;
+const i32 GDT_KCODE = 0x08;
+const i32 GDT_KDATA = 0x10;
+const i32 GDT_UCODE = 0x18;   // ring 3 adds its RPL, giving 0x1B
+const i32 GDT_UDATA = 0x20;   // 0x23
+const i32 GDT_TSS   = 0x28;
 
 struct GdtDesc {
     u16 limit_low;

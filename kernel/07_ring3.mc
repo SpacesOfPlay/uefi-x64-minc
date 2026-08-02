@@ -20,7 +20,7 @@ import gdt;
 import idt;
 import trap;
 
-u64 SYS_WRITE = 1;
+const u64 SYS_WRITE = 1;
 
 u64 g_kernel_save = 0;      // where __enter_user parks the ring-0 context
 u8[16384] user_stack;

@@ -8,7 +8,7 @@ u8[4096] idt_table;   // 256 gates * 16 bytes
 u8[10] idt_ptr;       // IDTR: limit (2 bytes) + base (8 bytes)
 
 // Handlers run under this selector (gdt.mc GDT_KCODE).
-i32 IDT_CODE_SELECTOR = 0x08;
+const i32 IDT_CODE_SELECTOR = 0x08;
 
 // A 64-bit interrupt gate. The handler address is split into three fields,
 // a leftover from the 32-bit layout this extends.

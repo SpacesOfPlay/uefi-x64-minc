@@ -15,7 +15,7 @@ import gdt;
 import idt;
 import lapic;
 
-i32 TIMER_VEC = 0x40;    // clear of the CPU exceptions and the masked PICs
+const i32 TIMER_VEC = 0x40;    // clear of the CPU exceptions and the masked PICs
 u64 g_ticks = 0;
 
 // The tick. The handler shares g_ticks with efi_main, so both use the atomic

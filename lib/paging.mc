@@ -12,14 +12,18 @@
 import efi;
 import pmm;
 
-u64 PTE_P = 0x1;      // present
-u64 PTE_RW = 0x2;     // writable
-u64 PTE_US = 0x4;     // user-accessible from ring 3
-u64 PTE_PS = 0x80;    // 2 MiB page at the PD level
+const u64 PTE_P = 0x1;      // present
+const u64 PTE_RW = 0x2;     // writable
+const u64 PTE_US = 0x4;     // user-accessible from ring 3
+const u64 PTE_PS = 0x80;    // 2 MiB page at the PD level
 
-u64 PAGE_2MB = 0x200000;
+const u64 PAGE_2MB = 0x200000;
 
 u64 paging_pml4 = 0;
+
+// One past the highest address paging_init mapped, 2 MiB aligned. Covers the
+// framebuffer as well as RAM, so anything at or above it faults.
+u64 paging_top = 0;
 
 // pmm frames carry a stale free-list link, so clear one before use as a table.
 void paging_zero_frame(u64 f) {
@@ -31,7 +35,8 @@ void paging_zero_frame(u64 f) {
 // when the entry is absent. An entry holds a 4 KiB-aligned address in bits
 // 12-51, so (e >> 12) << 12 recovers it.
 //
-// `table` is a physical address.
+// `table` is a physical address. A 2 MiB entry has no child, so the caller must
+// split it first.
 u64 paging_child(u64 table, u64 idx) {
     u64* t = cast(u64*, table);
     u64 e = t[idx];
@@ -50,14 +55,36 @@ void paging_map_2mb(u64 pml4, u64 virt, u64 phys) {
     t2[(virt >> 21) & 0x1FF] = phys | PTE_PS | PTE_RW | PTE_P;
 }
 
-// Map one 4 KiB page. An address that was never mapped before needs no TLB
-// flush, so nothing here reloads CR3.
+// Replace the 2 MiB page at pd[idx] with a page table covering the same range,
+// so a 4 KiB entry can be placed inside it. The 512 new entries reproduce the
+// old mapping, US included, so the split changes nothing for existing users.
+// Returns false when the entry is already a table.
+//
+// The frame address of a 2 MiB entry is in bits 21-51.
+bool paging_split_2mb(u64 pd, u64 idx) {
+    u64* t2 = cast(u64*, pd);
+    u64 e = t2[idx];
+    if (e & PTE_PS) == 0 { return false; }
+    u64 base = (e >> 21) << 21;
+    u64 flags = PTE_RW | PTE_P | (e & PTE_US);
+    u64 pt = pmm_alloc_frame();
+    u64* t1 = cast(u64*, pt);
+    for u64 i = 0; i < 512; i++ { t1[i] = (base + i * 4096) | flags; }
+    t2[idx] = pt | flags;
+    return true;
+}
+
+// Map one 4 KiB page. RAM is mapped with 2 MiB pages, so an address inside one
+// needs that page split first, and the old entry is then stale in the TLB.
+// A previously unmapped address needs neither.
 void paging_map_4kb(u64 pml4, u64 virt, u64 phys) {
     u64 pdpt = paging_child(pml4, (virt >> 39) & 0x1FF);
     u64 pd = paging_child(pdpt, (virt >> 30) & 0x1FF);
+    bool split = paging_split_2mb(pd, (virt >> 21) & 0x1FF);
     u64 pt = paging_child(pd, (virt >> 21) & 0x1FF);
     u64* t1 = cast(u64*, pt);
     t1[(virt >> 12) & 0x1FF] = phys | PTE_RW | PTE_P;
+    if split { __write_cr3(pml4); }
 }
 
 // Set US on the 2 MiB page covering `virt` and on every table above it. A
@@ -86,6 +113,7 @@ void paging_map_range_2mb(u64 base, u64 end) {
         paging_map_2mb(paging_pml4, addr, addr);
         addr = addr + PAGE_2MB;
     }
+    if addr > paging_top { paging_top = addr; }
 }
 
 // EFI memory types that are real DRAM. Reserved (0), unusable (8), MMIO (11),
@@ -100,7 +128,11 @@ bool paging_is_ram(u32 t) {
 // Build the tables and load CR3. fb_base and fb_bytes describe the framebuffer,
 // which is MMIO above RAM and so is not covered by the memory-map walk.
 void paging_init(EfiMemoryMap* mm, u64 fb_base, u64 fb_bytes) {
-    paging_pml4 = pmm_alloc_frame();
+    // The root has to sit below 4 GiB, because an AP starting through the
+    // trampoline loads CR3 while it is still in 32-bit mode. Only the root: the
+    // tables under it are reached through 64-bit entries.
+    paging_pml4 = pmm_alloc_low_frame();
+    if paging_pml4 == 0 { paging_pml4 = pmm_alloc_frame(); }
     paging_zero_frame(paging_pml4);
 
     // Stride by descriptor_size, which the firmware reports separately and may

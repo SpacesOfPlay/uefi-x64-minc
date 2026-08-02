@@ -8,7 +8,7 @@
 // Serial (COM1, 0x3F8). Works after ExitBootServices.
 // =====================================================================
 
-i32 COM1 = 0x3F8;
+const i32 COM1 = 0x3F8;
 
 void serial_init() {
     __outb(COM1 + 1, 0x00);   // disable interrupts
@@ -44,15 +44,39 @@ u8 serial_getc() {
 }
 
 // =====================================================================
+// PIT (8253/8254, 1.193182 MHz). Channel 2 is gated by port 0x61.
+// Times a delay without an interrupt.
+// =====================================================================
+
+// Busy-wait `us` microseconds. The count is us * 1193182 / 1000000, and a
+// 16-bit counter caps one shot near 54 ms, so longer waits are split.
+void pit_delay_us(u32 us) {
+    u64 left = cast(u64, us) * 1193182 / 1000000;
+    if left == 0 { left = 1; }
+    while left > 0 {
+        u64 c = left;
+        if c > 65535 { c = 65535; }
+        left = left - c;
+
+        u8 p = __inb(0x61);
+        __outb(0x61, cast(u8, (cast(i32, p) & 0xFC) | 1));   // ch2 gate on, speaker off
+        __outb(0x43, 0xB0);                                  // ch2, lo/hi byte, mode 0
+        __outb(0x42, cast(u8, c & 0xFF));
+        __outb(0x42, cast(u8, (c >> 8) & 0xFF));
+        while (__inb(0x61) & 0x20) == 0 { }                  // wait for ch2 OUT high
+    }
+}
+
+// =====================================================================
 // PS/2 keyboard (polled). Scancode set 1, US layout, unshifted.
 // =====================================================================
 
-i32 KBD_DATA = 0x60;
-i32 KBD_STATUS = 0x64;
+const i32 KBD_DATA = 0x60;
+const i32 KBD_STATUS = 0x64;
 
 // Make-code -> ASCII. 0 means no character: a modifier, or unmapped. Break
 // codes (bit 7 set) are key releases and index the same table after masking.
-u8[128] kbd_ascii = {
+const u8[128] kbd_ascii = {
     // 0x00
          0, '\x1B',    '1',    '2',    '3',    '4',    '5',    '6',
        '7',    '8',    '9',    '0',    '-',    '=', '\x08',   '\t',
@@ -94,7 +118,7 @@ u8 kbd_poll_char() {
 }
 
 // Shifted variants (Shift held). Same scancode layout as kbd_ascii.
-u8[128] kbd_ascii_shift = {
+const u8[128] kbd_ascii_shift = {
     // 0x00
          0, '\x1B',    '!',    '@',    '#',    '$',    '%',    '^',
        '&',    '*',    '(',    ')',    '_',    '+', '\x08',   '\t',

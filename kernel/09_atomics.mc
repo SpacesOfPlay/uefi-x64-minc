@@ -18,9 +18,9 @@ import lapic;
 import atomic;
 import spinlock;
 
-i32 TIMER_VEC = 0x40;
-i32 FIELDS = 8;
-u64 ROUND = 300;              // timer ticks per measurement
+const i32 TIMER_VEC = 0x40;
+const i32 FIELDS = 8;
+const u64 ROUND = 300;              // timer ticks per measurement
 
 u64 g_ticks = 0;
 u64[8] record;                // all fields hold the same value between updates

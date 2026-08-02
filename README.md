@@ -86,6 +86,7 @@ ready.
 | `08_syscall.mc` | A syscall ABI: a number in `rax`, an argument in `rdi`, the result written back into the saved frame. One call sets the interrupt flag there, and the timer starts preempting ring 3. |
 | `09_atomics.mc` | A timer handler observes a multi-store update half done. `__cli` and `__sti` is needed to block interrupts, a test-and-test-and-set spinlock shows the multi-core version. |
 | `10_cpus.mc` | ACPI: the EFI configuration table to the RSDP to the XSDT to the MADT, giving one APIC id per logical CPU. Parsed before ExitBootServices, printed after. Boots with 4 CPUs. |
+| `11_smp_boot.mc` | Wake the other cores. A hand-assembled trampoline walks each one from 16-bit real mode into long mode on the kernel's page tables, driven by INIT-SIPI-SIPI. |
 
 ## Interrupt handlers
 

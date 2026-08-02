@@ -22,13 +22,13 @@ import idt;
 import lapic;
 import trap;
 
-i32 TIMER_VEC = 0x40;
+const i32 TIMER_VEC = 0x40;
 
-u64 SYS_WRITE       = 1;        // print a string
-u64 SYS_WRITE_DEC   = 2;        // print a number
-u64 SYS_ADD         = 3;        // return arg + 2
-u64 SYS_IRQ_ON      = 4;        // set the interrupt flag in the saved flags
-u64 SYS_EXIT        = 5;        // leave ring 3
+const u64 SYS_WRITE       = 1;        // print a string
+const u64 SYS_WRITE_DEC   = 2;        // print a number
+const u64 SYS_ADD         = 3;        // return arg + 2
+const u64 SYS_IRQ_ON      = 4;        // set the interrupt flag in the saved flags
+const u64 SYS_EXIT        = 5;        // leave ring 3
 
 u64 g_ticks = 0;
 u64 g_kernel_save = 0;

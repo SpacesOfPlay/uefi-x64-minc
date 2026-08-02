@@ -17,7 +17,7 @@ struct Task {
     i32 used;
 }
 
-i32 SCHED_MAX = 8;
+const i32 SCHED_MAX = 8;
 
 Task[8] sched_tasks;
 i32 sched_count = 0;

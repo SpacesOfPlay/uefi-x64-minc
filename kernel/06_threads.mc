@@ -19,7 +19,7 @@ import idt;
 import lapic;
 import sched;
 
-i32 TIMER_VEC = 0x40;
+const i32 TIMER_VEC = 0x40;
 
 u64 g_ticks = 0;
 u64 work_a = 0;

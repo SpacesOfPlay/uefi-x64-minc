@@ -27,17 +27,17 @@ i32 con_cellw = 0;         // glyph cell width in pixels
 i32 con_rowh = 0;          // line height including the gap
 i32 con_marginx = 0;       // left padding
 
-i32 CON_SCALE = 2;         // one font pixel becomes a 2x2 block -> 16px glyphs
-i32 CON_VGAP = 8;          // blank pixels between rows -> 24px lines
+const i32 CON_SCALE = 2;         // one font pixel becomes a 2x2 block -> 16px glyphs
+const i32 CON_VGAP = 8;          // blank pixels between rows -> 24px lines
 
-u32 CON_BG = 0x00102838;   // dark slate
+const u32 CON_BG = 0x00102838;   // dark slate
 
-u32 CON_GREEN = 0x0080FF80;
-u32 CON_CYAN = 0x0080FFFF;
-u32 CON_YELLOW = 0x00F0E060;
-u32 CON_GRAY = 0x00C8C8C8;
-u32 CON_DIM = 0x0060A0C0;
-u32 CON_RED = 0x00FF6060;
+const u32 CON_GREEN = 0x0080FF80;
+const u32 CON_CYAN = 0x0080FFFF;
+const u32 CON_YELLOW = 0x00F0E060;
+const u32 CON_GRAY = 0x00C8C8C8;
+const u32 CON_DIM = 0x0060A0C0;
+const u32 CON_RED = 0x00FF6060;
 
 u32 con_fg = 0x0080FF80;   // current text colour, assign before printing
 

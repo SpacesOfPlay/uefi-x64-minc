@@ -7,12 +7,15 @@
 u64 lapic_base = 0;
 
 // LAPIC register offsets.
-u32 LAPIC_SVR   = 0xF0;    // spurious interrupt vector (bit 8 = APIC enable)
-u32 LAPIC_EOI   = 0xB0;    // end-of-interrupt
-u32 LAPIC_TIMER = 0x320;   // LVT timer (vector + mode)
-u32 LAPIC_TICR  = 0x380;   // timer initial count
-u32 LAPIC_TCCR  = 0x390;   // timer current count
-u32 LAPIC_TDCR  = 0x3E0;   // timer divide config
+const u32 LAPIC_ID    = 0x20;    // this core's APIC id, in bits 31:24
+const u32 LAPIC_SVR   = 0xF0;    // spurious interrupt vector (bit 8 = APIC enable)
+const u32 LAPIC_EOI   = 0xB0;    // end-of-interrupt
+const u32 LAPIC_ICRL  = 0x300;   // interrupt command, low half (writing it sends)
+const u32 LAPIC_ICRH  = 0x310;   // interrupt command, high half (destination)
+const u32 LAPIC_TIMER = 0x320;   // LVT timer (vector + mode)
+const u32 LAPIC_TICR  = 0x380;   // timer initial count
+const u32 LAPIC_TCCR  = 0x390;   // timer current count
+const u32 LAPIC_TDCR  = 0x3E0;   // timer divide config
 
 void lapic_set_base(u64 base) { lapic_base = base; }
 
@@ -27,6 +30,26 @@ void lapic_write(u32 reg, u32 v) {
 void lapic_enable() { lapic_write(LAPIC_SVR, lapic_read(LAPIC_SVR) | 0x100 | 0xFF); }
 
 void lapic_eoi() { lapic_write(LAPIC_EOI, 0); }
+
+// Which core is this code running on. Readable from any core in any context.
+u32 lapic_id() { return lapic_read(LAPIC_ID) >> 24; }
+
+// Send an inter-processor interrupt. The destination goes in the high half,
+// and writing the low half sends it. Bit 12 stays set until it is accepted.
+void lapic_ipi(u8 apic_id, u32 low) {
+    lapic_write(LAPIC_ICRH, cast(u32, apic_id) << 24);
+    lapic_write(LAPIC_ICRL, low);
+    i32 spins = 0;
+    while (lapic_read(LAPIC_ICRL) & 0x1000) != 0 && spins < 1000000 {
+        __pause();
+        spins = spins + 1;
+    }
+}
+
+// The two IPIs that start a core. INIT resets it to a wait-for-SIPI state, and
+// the SIPI tells it which page to start executing at: vector 8 means 0x8000.
+void lapic_send_init(u8 apic_id) { lapic_ipi(apic_id, 0x00004500); }
+void lapic_send_sipi(u8 apic_id, u8 vec) { lapic_ipi(apic_id, 0x00004600 | cast(u32, vec)); }
 
 // Fire `vector` every `count` timer ticks, with the divider at 16.
 void lapic_timer_periodic(u8 vector, u32 count) {

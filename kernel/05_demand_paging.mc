@@ -18,10 +18,6 @@ import gdt;
 import idt;
 import trap;
 
-u64 DEMAND_VA = 0x123456008;   // ~4.6 GiB, far above the mapped RAM
-u64 ALIAS_A = 0x200000000;
-u64 ALIAS_B = 0x200001000;
-
 i32 pf_count = 0;
 
 // Error-code bit 0 is P: clear means the page was not present, which is the
@@ -58,27 +54,35 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     idt_set_gate(14, cast(u64, &pf_handler));      // #PF
     idt_load();
 
-    con_field_hex("reading ", DEMAND_VA);
+    // Above everything paging_init mapped, so these fault whatever the machine's
+    // RAM size and framebuffer address turn out to be.
+    u64 demand_va = paging_top + 0x56008;
+    u64 alias_a = paging_top + PAGE_2MB;
+    u64 alias_b = alias_a + 0x1000;
+
+    con_field_hex("reading ", demand_va);
     con_puts("\n");
-    u64 v = *cast(u64*, DEMAND_VA);                // faults, is repaired, retries
+    u64 v = *cast(u64*, demand_va);                // faults, is repaired, retries
     con_field_hex("read returned ", v);
     con_field_dec(", faults so far: ", pf_count);
     con_puts("\n\n");
 
     // The page is mapped now, so the same read is an ordinary load.
-    v = *cast(u64*, DEMAND_VA);
+    v = *cast(u64*, demand_va);
     con_field_dec("read it again, faults: ", pf_count);
-    con_cputs(CON_GREEN, "\nresumed after #PF\n\n");
+    con_puts("\n");
+    if pf_count == 1 { con_cputs(CON_GREEN, "\nresumed after #PF\n\n"); }
+    else { con_cputs(CON_RED, "\nthe read did not fault\n\n"); }
 
     // One frame at two addresses. Both entries point at the same physical page,
     // so a write through one is visible through the other.
     u64 shared = pmm_alloc_frame();
     paging_zero_frame(shared);
-    paging_map_4kb(paging_pml4, ALIAS_A, shared);
-    paging_map_4kb(paging_pml4, ALIAS_B, shared);
-    *cast(u64*, ALIAS_A) = 0xC0FFEE;
-    con_field_hex("wrote via A: ", *cast(u64*, ALIAS_A));
-    con_field_hex("\nread via B:  ", *cast(u64*, ALIAS_B));
+    paging_map_4kb(paging_pml4, alias_a, shared);
+    paging_map_4kb(paging_pml4, alias_b, shared);
+    *cast(u64*, alias_a) = 0xC0FFEE;
+    con_field_hex("wrote via A: ", *cast(u64*, alias_a));
+    con_field_hex("\nread via B:  ", *cast(u64*, alias_b));
     con_puts("\n");
 
     while true { __hlt(); }

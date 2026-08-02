@@ -21,7 +21,7 @@ import trap;
 
 // A non-canonical x64 address: bit 47 set, upper bits clear. Dereferencing it
 // raises #GP on any machine, whatever the firmware mapped.
-u64 WILD = 0x0000800000000000;
+const u64 WILD = 0x0000800000000000;
 
 // #DE pushes no error code, so this is @interrupt and the frame has no
 // error_code field.

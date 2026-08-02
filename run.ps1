@@ -119,7 +119,7 @@ $isKernel = (Split-Path -Leaf (Split-Path -Parent $App)) -eq "kernel"
 # Examples about more than one CPU boot with four by default, since one core
 # tells the reader nothing. An explicit -Smp still wins. Everything else stays
 # single-core.
-$MultiCore = @("10_cpus")
+$MultiCore = @("10_cpus", "11_smp_boot")
 if (-not $PSBoundParameters.ContainsKey('Smp') -and ($MultiCore -contains $appBase)) {
     $Smp = 4
 }
