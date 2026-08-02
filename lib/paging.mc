@@ -24,44 +24,40 @@ u64 paging_pml4 = 0;
 // pmm frames carry a stale free-list link, so clear one before use as a table.
 void paging_zero_frame(u64 f) {
     u64* p = cast(u64*, f);
-    for i32 i = 0; i < 512; i++ { *(p + i) = 0; }
+    for i32 i = 0; i < 512; i++ { p[i] = 0; }
 }
 
 // Physical address of the child table at table[idx], allocating and zeroing one
 // when the entry is absent. An entry holds a 4 KiB-aligned address in bits
 // 12-51, so (e >> 12) << 12 recovers it.
-u64 paging_child(u64* table, i32 idx) {
-    u64 e = *(table + idx);
+//
+// `table` is a physical address.
+u64 paging_child(u64 table, u64 idx) {
+    u64* t = cast(u64*, table);
+    u64 e = t[idx];
     if (e & PTE_P) != 0 { return (e >> 12) << 12; }
     u64 nf = pmm_alloc_frame();
     paging_zero_frame(nf);
-    *(table + idx) = nf | PTE_RW | PTE_P;
+    t[idx] = nf | PTE_RW | PTE_P;
     return nf;
 }
 
 // Map a 2 MiB page. phys must be 2 MiB aligned.
 void paging_map_2mb(u64 pml4, u64 virt, u64 phys) {
-    i32 i4 = cast(i32, (virt >> 39) & 0x1FF);
-    i32 i3 = cast(i32, (virt >> 30) & 0x1FF);
-    i32 i2 = cast(i32, (virt >> 21) & 0x1FF);
-    u64 pdpt = paging_child(cast(u64*, pml4), i4);
-    u64 pd = paging_child(cast(u64*, pdpt), i3);
+    u64 pdpt = paging_child(pml4, (virt >> 39) & 0x1FF);
+    u64 pd = paging_child(pdpt, (virt >> 30) & 0x1FF);
     u64* t2 = cast(u64*, pd);
-    *(t2 + i2) = phys | PTE_PS | PTE_RW | PTE_P;
+    t2[(virt >> 21) & 0x1FF] = phys | PTE_PS | PTE_RW | PTE_P;
 }
 
 // Map one 4 KiB page. An address that was never mapped before needs no TLB
 // flush, so nothing here reloads CR3.
 void paging_map_4kb(u64 pml4, u64 virt, u64 phys) {
-    i32 i4 = cast(i32, (virt >> 39) & 0x1FF);
-    i32 i3 = cast(i32, (virt >> 30) & 0x1FF);
-    i32 i2 = cast(i32, (virt >> 21) & 0x1FF);
-    i32 i1 = cast(i32, (virt >> 12) & 0x1FF);
-    u64 pdpt = paging_child(cast(u64*, pml4), i4);
-    u64 pd = paging_child(cast(u64*, pdpt), i3);
-    u64 pt = paging_child(cast(u64*, pd), i2);
+    u64 pdpt = paging_child(pml4, (virt >> 39) & 0x1FF);
+    u64 pd = paging_child(pdpt, (virt >> 30) & 0x1FF);
+    u64 pt = paging_child(pd, (virt >> 21) & 0x1FF);
     u64* t1 = cast(u64*, pt);
-    *(t1 + i1) = phys | PTE_RW | PTE_P;
+    t1[(virt >> 12) & 0x1FF] = phys | PTE_RW | PTE_P;
 }
 
 // Set US on the 2 MiB page covering `virt` and on every table above it. A
@@ -71,15 +67,15 @@ void paging_map_4kb(u64 pml4, u64 virt, u64 phys) {
 // the bit works rather than acting as an isolation boundary. The caller must
 // reload CR3 afterwards, because these entries are already in the TLB.
 void paging_mark_user_2mb(u64 virt) {
-    i32 i4 = cast(i32, (virt >> 39) & 0x1FF);
-    i32 i3 = cast(i32, (virt >> 30) & 0x1FF);
-    i32 i2 = cast(i32, (virt >> 21) & 0x1FF);
+    u64 i4 = (virt >> 39) & 0x1FF;
+    u64 i3 = (virt >> 30) & 0x1FF;
+    u64 i2 = (virt >> 21) & 0x1FF;
     u64* t4 = cast(u64*, paging_pml4);
-    *(t4 + i4) = *(t4 + i4) | PTE_US;
-    u64* t3 = cast(u64*, (*(t4 + i4) >> 12) << 12);
-    *(t3 + i3) = *(t3 + i3) | PTE_US;
-    u64* t2 = cast(u64*, (*(t3 + i3) >> 12) << 12);
-    *(t2 + i2) = *(t2 + i2) | PTE_US;
+    t4[i4] = t4[i4] | PTE_US;
+    u64* t3 = cast(u64*, (t4[i4] >> 12) << 12);
+    t3[i3] = t3[i3] | PTE_US;
+    u64* t2 = cast(u64*, (t3[i3] >> 12) << 12);
+    t2[i2] = t2[i2] | PTE_US;
 }
 
 // Identity-map [base, end) with 2 MiB pages. base rounds down to a 2 MiB
@@ -107,13 +103,16 @@ void paging_init(EfiMemoryMap* mm, u64 fb_base, u64 fb_bytes) {
     paging_pml4 = pmm_alloc_frame();
     paging_zero_frame(paging_pml4);
 
-    u8* p = cast(u8*, mm.buffer);
-    i64 count = cast(i64, mm.size / mm.descriptor_size);
-    for i64 i = 0; i < count; i++ {
-        EfiMemoryDescriptor* d = cast(EfiMemoryDescriptor*, p + i * cast(i64, mm.descriptor_size));
+    // Stride by descriptor_size, which the firmware reports separately and may
+    // exceed sizeof(EfiMemoryDescriptor).
+    u64 pos = cast(u64, mm.buffer);
+    u64 end = pos + mm.size;
+    while pos < end {
+        EfiMemoryDescriptor* d = cast(EfiMemoryDescriptor*, pos);
         if paging_is_ram(d.type) {
             paging_map_range_2mb(d.physical_start, d.physical_start + d.number_of_pages * 4096);
         }
+        pos = pos + mm.descriptor_size;
     }
 
     if fb_base != 0 { paging_map_range_2mb(fb_base, fb_base + fb_bytes); }

@@ -37,15 +37,19 @@ u64 pmm_alloc_frame() {
 // runs on the firmware's stack, which lives in boot-services memory. Claiming
 // those types would hand out the stack in use.
 void pmm_init(EfiMemoryMap* mm) {
-    u8* p = cast(u8*, mm.buffer);
-    i64 count = cast(i64, mm.size / mm.descriptor_size);
-    for i64 i = 0; i < count; i++ {
-        EfiMemoryDescriptor* d = cast(EfiMemoryDescriptor*, p + i * cast(i64, mm.descriptor_size));
-        if d.type != EFI_CONVENTIONAL_MEMORY { continue; }
-        for u64 j = 0; j < d.number_of_pages; j++ {
-            u64 frame = d.physical_start + j * PMM_FRAME;
-            if frame >= 0x100000 { pmm_free_frame(frame); }   // skip below 1 MiB
+    // Stride by descriptor_size, which the firmware reports separately and may
+    // exceed sizeof(EfiMemoryDescriptor).
+    u64 pos = cast(u64, mm.buffer);
+    u64 end = pos + mm.size;
+    while pos < end {
+        EfiMemoryDescriptor* d = cast(EfiMemoryDescriptor*, pos);
+        if d.type == EFI_CONVENTIONAL_MEMORY {
+            for u64 j = 0; j < d.number_of_pages; j++ {
+                u64 frame = d.physical_start + j * PMM_FRAME;
+                if frame >= 0x100000 { pmm_free_frame(frame); }   // skip below 1 MiB
+            }
         }
+        pos = pos + mm.descriptor_size;
     }
     pmm_total_count = pmm_free_count;
 }

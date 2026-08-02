@@ -22,35 +22,50 @@ i32 GDT_UCODE = 0x18;   // ring 3 adds its RPL, giving 0x1B
 i32 GDT_UDATA = 0x20;   // 0x23
 i32 GDT_TSS = 0x28;
 
+struct GdtDesc {
+    u16 limit_low;
+    u16 base_low;
+    u8 base_mid;
+    u8 access;
+    u8 gran;
+    u8 base_high;
+}
+
+struct GdtTssDesc {
+    u16 limit_low;
+    u16 base_low;
+    u8 base_mid;
+    u8 access;
+    u8 gran;
+    u8 base_high;
+    u32 base_upper;
+    u32 reserved;
+}
+
 // Flat 8-byte descriptor: base 0, limit 0xFFFFF. `access` is the access byte
 // and `gran` the granularity byte.
 void gdt_set(i32 idx, u8 access, u8 gran) {
-    i64 b = cast(i64, idx) * 8;
-    *(gdt + b + 0) = 0xFF; *(gdt + b + 1) = 0xFF;               // limit 15:0
-    *(gdt + b + 2) = 0; *(gdt + b + 3) = 0; *(gdt + b + 4) = 0; // base 23:0
-    *(gdt + b + 5) = access;
-    *(gdt + b + 6) = gran;
-    *(gdt + b + 7) = 0;                                          // base 31:24
+    GdtDesc* d = cast(GdtDesc*, &gdt[idx * 8]);
+    d.limit_low = 0xFFFF;
+    d.base_low = 0;
+    d.base_mid = 0;
+    d.access = access;
+    d.gran = gran;
+    d.base_high = 0;
 }
 
 // A 64-bit TSS descriptor is a system descriptor and takes two slots, because
-// it carries a full 64-bit base.
+// it carries a full 64-bit base. The narrowing casts truncate, so no masking.
 void gdt_set_tss(i32 idx, u64 base, u32 limit) {
-    i64 b = cast(i64, idx) * 8;
-    *(gdt + b + 0) = cast(u8, limit & 0xFF);
-    *(gdt + b + 1) = cast(u8, (limit >> 8) & 0xFF);
-    *(gdt + b + 2) = cast(u8, base & 0xFF);
-    *(gdt + b + 3) = cast(u8, (base >> 8) & 0xFF);
-    *(gdt + b + 4) = cast(u8, (base >> 16) & 0xFF);
-    *(gdt + b + 5) = 0x89;                              // present, available 64-bit TSS
-    *(gdt + b + 6) = cast(u8, (limit >> 16) & 0x0F);
-    *(gdt + b + 7) = cast(u8, (base >> 24) & 0xFF);
-    *(gdt + b + 8) = cast(u8, (base >> 32) & 0xFF);
-    *(gdt + b + 9) = cast(u8, (base >> 40) & 0xFF);
-    *(gdt + b + 10) = cast(u8, (base >> 48) & 0xFF);
-    *(gdt + b + 11) = cast(u8, (base >> 56) & 0xFF);
-    *(gdt + b + 12) = 0; *(gdt + b + 13) = 0;
-    *(gdt + b + 14) = 0; *(gdt + b + 15) = 0;
+    GdtTssDesc* d = cast(GdtTssDesc*, &gdt[idx * 8]);
+    d.limit_low = cast(u16, limit);
+    d.base_low = cast(u16, base);
+    d.base_mid = cast(u8, base >> 16);
+    d.access = 0x89;                        // present, available 64-bit TSS
+    d.gran = cast(u8, (limit >> 16) & 0x0F);
+    d.base_high = cast(u8, base >> 24);
+    d.base_upper = cast(u32, base >> 32);
+    d.reserved = 0;
 }
 
 // Build and load the GDT and TSS, reload the segment registers, load the task

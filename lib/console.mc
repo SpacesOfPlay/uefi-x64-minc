@@ -80,7 +80,7 @@ void con_fill(i32 x, i32 y, i32 w, i32 h, u32 color) {
     u32* fb = cast(u32*, con_fb);
     for i32 ry = 0; ry < h; ry++ {
         i32 base = (y + ry) * con_pitch + x;
-        for i32 rx = 0; rx < w; rx++ { *(fb + base + rx) = color; }
+        for i32 rx = 0; rx < w; rx++ { fb[base + rx] = color; }
     }
 }
 
@@ -102,7 +102,7 @@ void con_scroll() {
     for i32 y = 0; y < top; y++ {
         i32 dst = y * con_pitch;
         i32 src = (y + con_rowh) * con_pitch;
-        for i32 x = 0; x < con_w; x++ { *(fb + dst + x) = *(fb + src + x); }
+        for i32 x = 0; x < con_w; x++ { fb[dst + x] = fb[src + x]; }
     }
     con_fill(0, top, con_w, con_rowh, CON_BG);
 }
@@ -136,8 +136,8 @@ void con_putc(u8 c) {
 
 void con_puts(u8* s) {
     i32 i = 0;
-    while *(s + i) != 0 {
-        con_putc(*(s + i));
+    while s[i] != 0 {
+        con_putc(s[i]);
         i = i + 1;
     }
 }

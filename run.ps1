@@ -25,6 +25,7 @@ param(
     [string]$Expect = "",
     [int]$TimeoutSec = 20,
     [string]$Cpu = "max",
+    [int]$Smp = 1,
     [int]$MemMB = 256
 )
 
@@ -67,6 +68,7 @@ function Show-Usage {
     Write-Host "options" -ForegroundColor Cyan
     Write-Host "  -BuildOnly                  compile to build/<name>.efi, do not boot"
     Write-Host "  -Headless [-Expect ""text""]  no window: print the serial log, check it for 'text'"
+    Write-Host "  -Smp 4                      CPU count (default 1, or 4 for multi-core examples)"
     Write-Host "  -TimeoutSec 20  -Cpu max  -MemMB 256"
     Write-Host ""
 }
@@ -114,6 +116,14 @@ $appBase = [IO.Path]::GetFileNameWithoutExtension($App)
 # their own console on it, mirrored to COM1. Both need the VGA device present.
 $isKernel = (Split-Path -Leaf (Split-Path -Parent $App)) -eq "kernel"
 
+# Examples about more than one CPU boot with four by default, since one core
+# tells the reader nothing. An explicit -Smp still wins. Everything else stays
+# single-core.
+$MultiCore = @("10_cpus")
+if (-not $PSBoundParameters.ContainsKey('Smp') -and ($MultiCore -contains $appBase)) {
+    $Smp = 4
+}
+
 New-Item -ItemType Directory -Force $Build | Out-Null
 $efi = Join-Path $Build "$appBase.efi"
 
@@ -136,7 +146,7 @@ Copy-Item $OvmfVars $varsRw -Force
 # A relative fat:rw: path, resolved from QEMU's working directory of $Root,
 # keeps the drive-letter colon out of the option syntax.
 $base = @(
-    "-machine", "q35", "-cpu", $Cpu, "-m", "${MemMB}M",
+    "-machine", "q35", "-cpu", $Cpu, "-smp", "$Smp", "-m", "${MemMB}M",
     "-drive", "if=pflash,format=raw,readonly=on,file=$OvmfCode",
     "-drive", "if=pflash,format=raw,file=$varsRw",
     "-drive", "format=raw,file=fat:rw:build/esp",
