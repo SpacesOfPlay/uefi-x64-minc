@@ -1,8 +1,8 @@
 // 02_traps.mc - take over the CPU's fault path: GDT, IDT, and a fault handled
 // by a minc function.
 //
-//   ./run.ps1 kernel/02_traps.mc
-//   ./run.ps1 kernel/02_traps.mc -Headless -Expect "CPU EXCEPTION"
+//   minc run kernel/02_traps.mc
+//   minc run kernel/02_traps.mc --headless --expect "CPU EXCEPTION"
 //
 // @interrupt and @interrupt_err mark a function as an interrupt handler. The
 // compiler emits the register save/restore and the iretq, and the handler

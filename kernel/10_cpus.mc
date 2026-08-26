@@ -1,8 +1,8 @@
 // 10_cpus.mc - ask the firmware how many CPUs there are.
 //
-//   ./run.ps1 kernel/10_cpus.mc                       (boots with 4 CPUs)
-//   ./run.ps1 kernel/10_cpus.mc -Headless -Expect "cpus: 4"
-//   ./run.ps1 kernel/10_cpus.mc -Smp 8                (any count works)
+//   minc run kernel/10_cpus.mc                       (boots with 4 CPUs)
+//   minc run kernel/10_cpus.mc --headless --expect "cpus: 4"
+//   minc run kernel/10_cpus.mc --smp 8                (any count works)
 //
 // The other cpu cores need to be activated, starting with enumeration. Its 
 // APIC id has to be read from a table. The ACPI is where the firmware puts 

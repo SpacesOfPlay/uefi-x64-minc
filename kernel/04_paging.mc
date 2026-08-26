@@ -1,7 +1,7 @@
 // 04_paging.mc - stop using the firmware's page tables and build our own.
 //
-//   ./run.ps1 kernel/04_paging.mc
-//   ./run.ps1 kernel/04_paging.mc -Headless -Expect "on our own tables"
+//   minc run kernel/04_paging.mc
+//   minc run kernel/04_paging.mc --headless --expect "on our own tables"
 //
 // ExitBootServices leaves the firmware's identity map in place, and examples 01
 // to 03 use it. That map can't be extended, and it resides in memory the kernel

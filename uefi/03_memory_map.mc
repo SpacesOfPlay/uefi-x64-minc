@@ -1,6 +1,6 @@
 // 03_memory_map.mc - what the firmware knows about RAM.
 //
-//   ./run.ps1 uefi/03_memory_map.mc
+//   minc run uefi/03_memory_map.mc
 //
 // GetMemoryMap returns an array of typed regions. A kernel reads this map to
 // find the pages it may claim after ExitBootServices. This example totals the

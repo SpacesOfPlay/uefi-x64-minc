@@ -1,7 +1,7 @@
 // 06_threads.mc - two tasks sharing one core, switched by the timer.
 //
-//   ./run.ps1 kernel/06_threads.mc
-//   ./run.ps1 kernel/06_threads.mc -Headless -Expect "both workers ran"
+//   minc run kernel/06_threads.mc
+//   minc run kernel/06_threads.mc --headless --expect "both workers ran"
 //
 // Example 03 counted timer interrupts. This one uses them to switch tasks. A
 // task's whole saved context is its stack pointer, so a switch means pushing

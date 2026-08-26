@@ -1,7 +1,7 @@
 // 05_demand_paging.mc - a page fault the kernel repairs instead of dying on.
 //
-//   ./run.ps1 kernel/05_demand_paging.mc
-//   ./run.ps1 kernel/05_demand_paging.mc -Headless -Expect "resumed after #PF"
+//   minc run kernel/05_demand_paging.mc
+//   minc run kernel/05_demand_paging.mc --headless --expect "resumed after #PF"
 //
 // Example 02 catches a fault, dumps the registers and halts. It can't do anything
 // else, because it does not own the page tables. Since example 04 added page tables

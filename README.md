@@ -39,10 +39,16 @@ Requirements: a minc compiler, and QEMU with OVMF firmware
 (`pacman -S mingw-w64-x86_64-qemu` under MSYS2, or set `MINC_QEMU` /
 `MINC_OVMF_CODE` / `MINC_OVMF_VARS`).
 
-```powershell
-$env:MINC = "install\path\"           # or put minc on PATH
-./run.ps1 uefi/01_hello.mc            # compile + boot; all output in the QEMU window
 ```
+minc run                              # list the examples
+minc run uefi/01_hello.mc             # compile + boot; all output in the QEMU window
+minc build uefi/01_hello.mc           # compile only -> build/01_hello.efi
+```
+
+`minc run` in this folder drives [build.mc](build.mc), the repo's build
+script. `minc run <example> --headless --expect "text"` boots without a
+window and checks the serial log; `--smp 4`, `--cpu`, `--mem` and
+`--timeout` adjust the VM.
 
 ## The target
 
@@ -70,7 +76,7 @@ $env:MINC = "install\path\"           # or put minc on PATH
 
 After ExitBootServices there is no console. `lib/console.mc` reads the framebuffer
 address from the firmware before the exit, then draws into it with an 8x8
-bitmap font. Output also goes to COM1, which `run.ps1 -Headless` tests read.
+bitmap font. Output also goes to COM1, which `minc run --headless` tests read.
 Input comes from the PS/2 keyboard or the serial port, whichever has a byte
 ready.
 

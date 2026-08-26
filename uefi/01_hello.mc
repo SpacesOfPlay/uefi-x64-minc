@@ -1,6 +1,6 @@
 // 01_hello.mc - a complete UEFI application in one file, no imports.
 //
-//   ./run.ps1 uefi/01_hello.mc
+//   minc run uefi/01_hello.mc
 //
 // The firmware loads the .efi and calls efi_main with the image handle and the
 // system table. Every service is a function pointer inside a spec-layout

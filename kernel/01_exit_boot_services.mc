@@ -1,6 +1,6 @@
 // 01_exit_boot_services.mc - leave the firmware behind.
 //
-//   ./run.ps1 kernel/01_exit_boot_services.mc
+//   minc run kernel/01_exit_boot_services.mc
 //   (type in the QEMU window after the handoff, either tab works)
 //
 // ExitBootServices removes the firmware's services. No console, no allocator,

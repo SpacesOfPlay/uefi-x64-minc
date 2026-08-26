@@ -1,6 +1,6 @@
 // 02_gop.mc - draw pixels into the Graphics Output Protocol framebuffer.
 //
-//   ./run.ps1 uefi/02_gop.mc
+//   minc run uefi/02_gop.mc
 //
 // The GOP reports a linear framebuffer: base address, resolution and row
 // pitch. Drawing after that is stores. Pixels are 32-bit 0x00RRGGBB under the

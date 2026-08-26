@@ -1,7 +1,7 @@
 // 08_syscall.mc - a syscall ABI, and ring 3 running preempted.
 //
-//   ./run.ps1 kernel/08_syscall.mc
-//   ./run.ps1 kernel/08_syscall.mc -Headless -Expect "ring 3 exited"
+//   minc run kernel/08_syscall.mc
+//   minc run kernel/08_syscall.mc --headless --expect "ring 3 exited"
 //
 // Example 07 made one call into the kernel. This turns that into an interface:
 // a number in rax picks the service, rdi carries the argument, and the handler
