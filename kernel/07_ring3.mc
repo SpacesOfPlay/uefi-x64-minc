@@ -1,7 +1,7 @@
 // 07_ring3.mc - drop to ring 3 and come back.
 //
-//   ./run.ps1 kernel/07_ring3.mc
-//   ./run.ps1 kernel/07_ring3.mc -Headless -Expect "back in ring 0"
+//   minc run kernel/07_ring3.mc
+//   minc run kernel/07_ring3.mc --headless --expect "back in ring 0"
 //
 // Everything so far ran at ring 0, where every instruction is allowed. Ring 3
 // is the other side: no port I/O, no control registers, no descriptor tables,

@@ -1,6 +1,6 @@
 // 04_files.mc - read a file from the EFI System Partition.
 //
-//   ./run.ps1 uefi/04_files.mc
+//   minc run uefi/04_files.mc
 //
 // The firmware exposes the boot volume through the Simple File System
 // protocol. This program opens \EFI\BOOT\BOOTX64.EFI, which is the file the

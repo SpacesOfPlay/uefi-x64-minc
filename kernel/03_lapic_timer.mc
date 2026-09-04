@@ -1,8 +1,8 @@
 // 03_lapic_timer.mc - the local APIC timer drives a minc interrupt handler
 // 100 times a second.
 //
-//   ./run.ps1 kernel/03_lapic_timer.mc
-//   ./run.ps1 kernel/03_lapic_timer.mc -Headless -Expect "500 ticks"
+//   minc run kernel/03_lapic_timer.mc
+//   minc run kernel/03_lapic_timer.mc --headless --expect "500 ticks"
 //
 // The sequence for periodic interrupts on bare metal: install a GDT and IDT,
 // mask the legacy PICs, locate the LAPIC through the APIC-base MSR and enable

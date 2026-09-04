@@ -1,7 +1,7 @@
 // 11_smp_boot.mc - start the other cores.
 //
-//   ./run.ps1 kernel/11_smp_boot.mc                   (boots with 4 CPUs)
-//   ./run.ps1 kernel/11_smp_boot.mc -Headless -Expect "cores online: 4/4"
+//   minc run kernel/11_smp_boot.mc                   (boots with 4 CPUs)
+//   minc run kernel/11_smp_boot.mc --headless --expect "cores online: 4/4"
 //
 // Example 10 found the cpu core info. This shows how to activate them.
 //

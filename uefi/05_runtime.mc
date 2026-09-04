@@ -1,6 +1,6 @@
 // 05_runtime.mc - the runtime contract: portable minc on the firmware.
 //
-//   ./run.ps1 uefi/05_runtime.mc
+//   minc run uefi/05_runtime.mc
 //
 // On --target uefi-x64 the ordinary builtins (write, alloc, free, exit, ...)
 // compile to calls on __minc_* symbols the program itself provides. Back those

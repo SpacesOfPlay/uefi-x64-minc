@@ -1,7 +1,7 @@
 // 09_atomics.mc - interrupts and spinlock.
 //
-//   ./run.ps1 kernel/09_atomics.mc
-//   ./run.ps1 kernel/09_atomics.mc -Headless -Expect "atomics ok"
+//   minc run kernel/09_atomics.mc
+//   minc run kernel/09_atomics.mc --headless --expect "atomics ok"
 //
 // A single aligned store is atomic. An update spanning several stores is not,
 // and a timer handler can observe it half done.
