@@ -80,7 +80,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     // because those entries are already cached in the TLB.
     paging_mark_user_2mb(cast(u64, &user_main));
     paging_mark_user_2mb(cast(u64, &user_stack[0]));
-    __write_cr3(paging_pml4);
+    __wrcr3(paging_pml4);
 
     con_cputs(CON_GRAY, "entering ring 3\n");
     __enter_user(cast(u64, &user_main),

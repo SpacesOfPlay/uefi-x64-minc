@@ -84,7 +84,7 @@ void paging_map_4kb(u64 pml4, u64 virt, u64 phys) {
     u64 pt = paging_child(pd, (virt >> 21) & 0x1FF);
     u64* t1 = cast(u64*, pt);
     t1[(virt >> 12) & 0x1FF] = phys | PTE_RW | PTE_P;
-    if split { __write_cr3(pml4); }
+    if split { __wrcr3(pml4); }
 }
 
 // Set US on the 2 MiB page covering `virt` and on every table above it. A
@@ -149,5 +149,5 @@ void paging_init(EfiMemoryMap* mm, u64 fb_base, u64 fb_bytes) {
 
     if fb_base != 0 { paging_map_range_2mb(fb_base, fb_base + fb_bytes); }
 
-    __write_cr3(paging_pml4);
+    __wrcr3(paging_pml4);
 }

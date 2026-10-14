@@ -24,7 +24,7 @@ i32 pf_count = 0;
 // case this handler repairs. A set bit 1 would mean the access was a write.
 @interrupt_err void pf_handler(TrapFrame* tf) {
     pf_count = pf_count + 1;
-    u64 cr2 = __read_cr2();
+    u64 cr2 = __rdcr2();
 
     con_cputs(CON_RED, "  #PF ");
     con_field_hex("cr2=", cr2);

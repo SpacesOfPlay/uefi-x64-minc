@@ -58,7 +58,7 @@ void trap_dump(u8* name, TrapFrame* tf) {
     con_field_hex("\n      cs=", tf.cs);
     con_field_hex("  rflags=", tf.rflags);
     con_field_hex("\n     rsp=", tf.rsp);
-    con_field_hex("     cr2=", __read_cr2());
+    con_field_hex("     cr2=", __rdcr2());
     con_field_hex("\n     rax=", tf.rax);
     con_field_hex("     rbx=", tf.rbx);
     con_field_hex("\n     rcx=", tf.rcx);

@@ -121,7 +121,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
 
     paging_mark_user_2mb(cast(u64, &user_main));
     paging_mark_user_2mb(cast(u64, &user_stack[0]));
-    __write_cr3(paging_pml4);
+    __wrcr3(paging_pml4);
 
     // Ring 0 stays with interrupts off. Only ring 3 gets them, and only after
     // it asks, so the timer ticks counted below all happened in user mode.

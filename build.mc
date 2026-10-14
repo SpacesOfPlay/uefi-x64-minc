@@ -5,6 +5,7 @@
 //   minc run uefi/01_hello.mc         build + boot (output in the QEMU window)
 //   minc run kernel/03_lapic_timer.mc
 //   minc build uefi/01_hello.mc       just produce build/01_hello.efi
+//   minc build all                    compile every example, boot nothing
 //   minc run kernel/02_traps.mc --headless --expect "CPU EXCEPTION"
 //   minc run kernel/10_cpus.mc --smp 8
 //   minc clean
@@ -216,6 +217,35 @@ string strip_ansi(str s) {
 
 // --- Examples ----------------------------------------------------------
 
+// Compile one example to build/<name>.efi. The cwd is the repo root,
+// so `import x;` resolves lib/x.mc.
+bool compile_example(str minc, str src) {
+    string efi = join_named("build", path_stem(src), ".efi");
+    defer free(efi);
+    print(">> compiling {}\n", src);
+    ProcCmd cc_cmd = { .args = { minc, src, "--target", "uefi-x64", "-o", efi } };
+    ProcResult cc_r = proc_run(&cc_cmd);
+    i32 cc_rc = cc_r.exit_code;
+    proc_result_free(&cc_r);
+    return cc_rc == 0 && path_exists(efi);
+}
+
+// Every example under uefi/ and kernel/; the count that failed.
+i32 compile_all(str minc) {
+    i32 failed = 0;
+    str[2] dirs = { "uefi", "kernel" };
+    for i32 d = 0; d < 2; d++ {
+        DirList l = dir_list(dirs[d], ".mc", false);
+        defer dir_list_free(&l);
+        for i32 i = 0; i < l.count; i++ {
+            string rel = path_join(dirs[d], l.items[i]);
+            defer free(rel);
+            if !compile_example(minc, rel) { failed++; }
+        }
+    }
+    return failed;
+}
+
 // "uefi/01_hello.mc", "uefi/01_hello", or a path to any .mc file.
 // Caller frees; empty when nothing matches.
 string resolve_source(str arg) {
@@ -252,6 +282,7 @@ void usage() {
     list_dir("kernel", "after ExitBootServices: the bare hardware, on a console of their own");
     print("options\n"
           "  minc build <example>          compile to build/<name>.efi, do not boot\n"
+          "  minc build all                compile every example\n"
           "  --headless [--expect \"text\"]  no window: print the serial log, check it for 'text'\n"
           "  --smp 4                       CPU count (default 1, or 4 for multi-core examples)\n"
           "  --timeout 20  --cpu max  --mem 256\n"
@@ -332,6 +363,17 @@ i32 main() {
         die("missing lib/efi.mc — run from the repo root");
     }
 
+    if str_equal(verb, "build") && str_equal(target, "all") {
+        ignore dir_create("build");
+        i32 failed = compile_all(minc);
+        if failed > 0 {
+            eprint("{} example(s) failed\n", failed);
+            return 1;
+        }
+        print(">> built every example\n");
+        return 0;
+    }
+
     string src = resolve_source(target);
     defer free(src);
     if src.len == 0 {
@@ -356,13 +398,7 @@ i32 main() {
     string efi = join_named("build", name, ".efi");
     defer free(efi);
 
-    // Compile with cwd = the repo root so `import x;` resolves lib/x.mc.
-    print(">> compiling {}\n", src);
-    ProcCmd cc_cmd = { .args = { minc, src, "--target", "uefi-x64", "-o", efi } };
-    ProcResult cc_r = proc_run(&cc_cmd);
-    i32 cc_rc = cc_r.exit_code;
-    proc_result_free(&cc_r);
-    if cc_rc != 0 || !path_exists(efi) { die("compile failed"); }
+    if !compile_example(minc, src) { die("compile failed"); }
     if str_equal(verb, "build") {
         print(">> built {}\n", efi);
         return 0;
