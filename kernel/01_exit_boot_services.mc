@@ -43,8 +43,8 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     con_cputs(CON_GRAY, " regions\n");
 
     // CPU state, read through the intrinsics.
-    con_field_hex("cr0 = ", __read_cr0());
-    con_field_hex("\ncr3 = ", __read_cr3());
+    con_field_hex("cr0 = ", __rdcr0());
+    con_field_hex("\ncr3 = ", __rdcr3());
     con_field_hex("\napic base msr = ", __rdmsr(0x1B));
     con_puts("\n\ntype something - the kernel echoes it back:\n> ");
 

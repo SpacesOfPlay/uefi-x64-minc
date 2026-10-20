@@ -112,9 +112,9 @@ Bare-metal builtins available on this target. No import needed.
 | Port I/O | `__inb` `__outb` `__inw` `__outw` |
 | CPU control | `__cli` `__sti` `__hlt` `__pause` |
 | MSRs | `__rdmsr(msr)` `__wrmsr(msr, val)` `__xsetbv` |
-| Control registers | `__read_cr0/2/3/4` `__write_cr0/3/4` |
-| Descriptor tables | `__lgdt(ptr)` `__lidt(ptr)` `__ltr(sel)` `__set_segments(cs, ds)` |
-| Threads & rings | `__context_switch` `__call_on_stack` `__enter_user` `__leave_user` `__syscall` `__syscall_setup` `__fast_syscall` `__fpu_save` `__fpu_restore` |
+| Control registers | `__rdcr0/2/3/4` `__wrcr0/3/4` |
+| Descriptor tables | `__lgdt(ptr)` `__lidt(ptr)` `__ltr(sel)` `__ldseg(cs, ds)` |
+| Threads & rings | `__context_switch` `__call_on_stack` `__enter_user` `__leave_user` `__syscall` `__syscall_fast_setup` `__syscall_fast` `__fpu_save` `__fpu_restore` |
 
 The examples use the first five groups. The last row covers schedulers, ring-3
 user code and syscalls.

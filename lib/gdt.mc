@@ -91,6 +91,6 @@ void gdt_init() {
     *base = cast(u64, &gdt[0]);
 
     __lgdt(&gdt_ptr[0]);
-    __set_segments(GDT_KCODE, GDT_KDATA);
+    __ldseg(GDT_KCODE, GDT_KDATA);
     __ltr(GDT_TSS);
 }

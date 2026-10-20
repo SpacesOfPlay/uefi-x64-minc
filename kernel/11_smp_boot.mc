@@ -44,7 +44,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     // mappings have to exist in it before the first SIPI.
     paging_map_2mb(paging_pml4, acpi_lapic_base, acpi_lapic_base);
     paging_map_2mb(paging_pml4, 0, 0);
-    __write_cr3(paging_pml4);
+    __wrcr3(paging_pml4);
 
     lapic_set_base(acpi_lapic_base);
     lapic_enable();

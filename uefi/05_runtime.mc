@@ -81,8 +81,25 @@ i32 __minc_write(i64 handle, void* buf, i32 count) {
     return count;
 }
 
-void* __minc_alloc(i64 n) { return efi_alloc(rt_st, cast(u64, n)); }
-void __minc_free(void* p) { if p != null { efi_free(rt_st, p); } }
+void* __minc_alloc(i64 n) {
+    u64* p = cast(u64*, efi_alloc(rt_st, cast(u64, n) + 16));
+    if p == null { return null; }
+    *p = cast(u64, n);
+    return cast(void*, p + 2);
+}
+void __minc_free(void* p) { if p != null { efi_free(rt_st, cast(void*, cast(u64*, p) - 2)); } }
+void* __minc_realloc(void* p, i64 n) {
+    if p == null { return __minc_alloc(n); }
+    if n == 0 { __minc_free(p); return null; }
+    i64 old = cast(i64, *(cast(u64*, p) - 2));
+    void* q = __minc_alloc(n);
+    if q == null { return null; }
+    i64 m = old;
+    if n < m { m = n; }
+    __minc_memcpy(q, p, m);
+    __minc_free(p);
+    return q;
+}
 
 void* __minc_memcpy(void* dst, void* src, i64 n) {
     efi_copy_mem(rt_st, dst, src, cast(u64, n));

@@ -35,7 +35,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     con_field_dec(" = ", cast(i64, pmm_free_mb()));
     con_cputs(CON_GRAY, " MiB\n");
 
-    con_field_hex("firmware cr3: ", __read_cr3());
+    con_field_hex("firmware cr3: ", __rdcr3());
     con_puts("\n");
 
     // The framebuffer is MMIO above RAM, so the memory-map walk does not cover
@@ -45,7 +45,7 @@ u64 efi_main(void* image_handle, EfiSystemTable* st) {
     u64 before = pmm_free_count;
     paging_init(&mm, con_fb, fb_bytes);
 
-    con_field_hex("our cr3:      ", __read_cr3());
+    con_field_hex("our cr3:      ", __rdcr3());
     con_puts("\n");
     con_field_dec("tables cost:  ", cast(i64, before - pmm_free_count));
     con_cputs(CON_GRAY, " frames\n\n");
