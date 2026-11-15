@@ -1,0 +1,11 @@
+edminc-session 2
+buf 0 0 0 README.md
+buf 56 26 594 kernel/11_smp_boot.mc
+preview 1
+buf 73 76 1353 lib/smp.mc
+preview 2
+treeopen kernel
+active-window 0
+window -11 -11 3862 2110 1 0 1 1
+div 0 10000
+pane 2 73 76 1353 0
